@@ -1,0 +1,394 @@
+{
+  "schema_version": "1.0",
+  "project_id": "SD-EXAMPLE-0001",
+  "episode_id": "EP001",
+  "package_status": "draft",
+  "aspect_ratio": "9:16",
+  "source_documents": [
+    "../../剧集/EP001/剧本.md",
+    "../../剧集/EP001/视觉设定.md",
+    "../../剧集/EP001/分镜.md",
+    "../../剧集/EP001/图片提示词.md",
+    "../../剧集/EP001/视频提示词.md"
+  ],
+  "style_lock": {
+    "summary": "竖屏9:16半写实国风条漫漫剧；清晰轮廓线、有限色层、现实材质保留少量纹理；冷白顶灯、米白地砖、深绿长椅构成低饱和冷调；无霓虹、无法术光效、无雾。",
+    "palette": [
+      "冷白顶灯",
+      "米白地砖",
+      "深绿长椅",
+      "深藏蓝制服",
+      "牛皮纸黄"
+    ],
+    "texture": [
+      "克制的布料纹理",
+      "地砖接缝清晰",
+      "金属钥匙冷反光",
+      "牛皮纸四角磨损"
+    ],
+    "negative_rules": [
+      "不出现可读文字、广告内容、logo、品牌或邮戳",
+      "不出现霓虹、法术光效、雾、列车或额外人物"
+    ]
+  },
+  "assets": [
+    {
+      "asset_id": "ASSET-CHAR-SHENQING",
+      "kind": "character",
+      "approved": true,
+      "path": null,
+      "flow_asset_name": "CHAR-SHENQING-SHEET",
+      "usage": "ingredient",
+      "notes": "沈青身份、发型、面部、制服与道具关系。本示例不附带本地参考图，资产只按 Flow 资产名登记。"
+    },
+    {
+      "asset_id": "ASSET-CHAR-MAN",
+      "kind": "character",
+      "approved": true,
+      "path": null,
+      "flow_asset_name": "CHAR-MAN-SHEET",
+      "usage": "ingredient",
+      "notes": "男人身份、发际线、右颧骨旧疤与灰色胡茬。本示例不附带本地参考图。"
+    },
+    {
+      "asset_id": "ASSET-LOC-PLATFORM",
+      "kind": "location",
+      "approved": true,
+      "path": null,
+      "flow_asset_name": "LOC-PLATFORM-PLATE",
+      "usage": "ingredient",
+      "notes": "岛式站台、米白方形地砖、第三排深绿五座长椅、方形立柱与冷白顶灯。本示例不附带本地参考图。"
+    },
+    {
+      "asset_id": "ASSET-PROP-ENVELOPE",
+      "kind": "prop",
+      "approved": true,
+      "path": null,
+      "flow_asset_name": "PROP-ENVELOPE-PLATE",
+      "usage": "ingredient",
+      "notes": "A5牛皮纸信封、四角磨损、封口折入未粘合、正面完全空白。本示例不附带本地参考图。"
+    }
+  ],
+  "characters": [
+    {
+      "character_id": "CHAR-SHENQING",
+      "display_name": "沈青",
+      "appearance_lock": {
+        "face": "24岁女性；窄脸、眉形平直、左眉尾一颗浅色小痣",
+        "hair": "短发齐耳，发色深栗，不遮眉",
+        "costume": "深藏蓝地铁制服长袖立领，左胸盾形臂章位置留空；黑色直筒裤；黑色平底工装鞋；反光背心挂在左臂、不穿着",
+        "state": "本集无伤口、无污渍；左手始终提着金属钥匙串"
+      },
+      "avoid": [
+        "改变发型与脸型",
+        "移动左眉尾痣的位置",
+        "更换制服颜色或款式",
+        "把反光背心穿到身上",
+        "化妆感或偶像化"
+      ],
+      "reference_asset_ids": [
+        "ASSET-CHAR-SHENQING"
+      ]
+    },
+    {
+      "character_id": "CHAR-MAN",
+      "display_name": "等车的男人",
+      "appearance_lock": {
+        "face": "约50岁男性；眼窝深；右侧颧骨一道约3厘米旧疤",
+        "hair": "花白短发，发际线后移",
+        "costume": "深灰夹克拉链拉至胸口，内搭深色圆领衫；深色长裤；黑色软底鞋",
+        "state": "下颌灰色胡茬；双手始终压在膝上信封上，本集不站起"
+      },
+      "avoid": [
+        "改变疤痕位置与长度",
+        "改变发际线或胡茬状态",
+        "更换外套颜色",
+        "夸张表情或咆哮"
+      ],
+      "reference_asset_ids": [
+        "ASSET-CHAR-MAN"
+      ]
+    }
+  ],
+  "locations": [
+    {
+      "location_id": "LOC-PLATFORM",
+      "display_name": "地铁站台",
+      "state_lock": {
+        "time": "深夜，末班车已发出",
+        "weather": "室内，无天气变化",
+        "practical_lights": "顶部条形LED冷白常亮；轨道对面广告灯箱暗屏；站台显示屏不出现可读文字",
+        "screen_geography": "长椅位于中景偏右，右端靠近一根方形立柱；隧道口在画面深处"
+      },
+      "reference_asset_ids": [
+        "ASSET-LOC-PLATFORM"
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "shot_id": "SHOT-EP001-001",
+      "source_scene_id": "EP001-SC001",
+      "purpose": "先建立末班车已走、站台已空的空间事实，再让观众发现长椅上还有人",
+      "duration_seconds": 9,
+      "generation_mode": "text",
+      "character_ids": [
+        "CHAR-SHENQING",
+        "CHAR-MAN"
+      ],
+      "location_id": "LOC-PLATFORM",
+      "reference_asset_ids": [
+        "ASSET-LOC-PLATFORM",
+        "ASSET-CHAR-MAN",
+        "ASSET-CHAR-SHENQING",
+        "ASSET-PROP-ENVELOPE"
+      ],
+      "start_frame_asset_id": null,
+      "end_frame_asset_id": null,
+      "input_video_asset_id": null,
+      "voice_reference_asset_id": null,
+      "prompt": "竖屏9:16，半写实国风条漫，清晰轮廓线，有限色层；固定机位拍摄深夜地铁岛式站台纵深全景。米白色方形地砖接缝深灰，第三排深绿色硬塑五座长椅位于中景偏右，长椅右端靠近一根方形立柱，顶部条形LED发出冷白光，轨道对面广告灯箱处于暗屏状态。长椅右端坐着一名约50岁男性，花白短发、发际线后移、深灰夹克，膝上平放一只旧牛皮纸信封，他保持静止。画面开始时，隧道口一点红色尾灯正在收小并消失。随后一名24岁女性从画面左后方走入：短发齐耳、深藏蓝制服、黑色直筒裤、黑色平底工装鞋，左手提一串金属钥匙，反光背心挂在左臂。她沿站台走向长椅，在距长椅三步处停住，身体朝向长椅右端，静止不动。摄影机全程固定，不推拉摇移。环境音为顶灯电流声与远处通风口低鸣，无音乐。",
+      "negative_rules": [
+        "不出现可读文字、广告内容或列车",
+        "不出现额外人物",
+        "不改变长椅颜色与座位数、立柱位置",
+        "不出现霓虹或法术光效"
+      ],
+      "start_state": {
+        "who": [
+          "CHAR-SHENQING",
+          "CHAR-MAN"
+        ],
+        "where": "LOC-PLATFORM",
+        "what": [
+          "隧道口一点红色尾灯正在收小",
+          "站台无其他乘客",
+          "信封平放在男人膝上、双手之下"
+        ],
+        "when": "深夜，末班车后",
+        "screen_geography": "长椅位于中景偏右，立柱在其右侧；沈青尚在画面外左后方",
+        "story_phase": "站台已清空，观众尚未注意到长椅上的人"
+      },
+      "end_state": {
+        "who": [
+          "CHAR-SHENQING",
+          "CHAR-MAN"
+        ],
+        "where": "LOC-PLATFORM",
+        "what": [
+          "尾灯完全消失",
+          "沈青静止站在距长椅三步处",
+          "钥匙串在沈青左手"
+        ],
+        "when": "深夜，末班车后",
+        "screen_geography": "沈青位于长椅左侧三步处，身体朝向长椅右端",
+        "story_phase": "沈青发现有人未离站"
+      },
+      "continuity_delta": {
+        "changed": [
+          "tail_light",
+          "shenqing_position"
+        ],
+        "why_changed": "列车驶离隧道；沈青执行清站巡查并在长椅前停步"
+      },
+      "continuity_bridge": "本集首镜，无前镜。",
+      "camera": {
+        "shot_size": "站台纵深全景",
+        "height": "站立视高",
+        "movement": "locked-off",
+        "axis": "沿站台纵深方向，长椅在画面右侧，隧道口在深处",
+        "focus_order": [
+          "隧道口尾灯",
+          "长椅右端的男人",
+          "从左侧入画的沈青"
+        ]
+      },
+      "dialogue": {
+        "speaker": "",
+        "text": "",
+        "performance": "无对白；顶灯电流声与通风口低鸣承担全部声音职责"
+      },
+      "output": {
+        "clip_path": null,
+        "flow_asset_name": null,
+        "status": "not_generated",
+        "review_status": "pending"
+      }
+    },
+    {
+      "shot_id": "SHOT-EP001-002",
+      "source_scene_id": "EP001-SC002",
+      "purpose": "用距离变化把发现推进成介入，并让观众看清男人的脸",
+      "duration_seconds": 11,
+      "generation_mode": "text",
+      "character_ids": [
+        "CHAR-SHENQING",
+        "CHAR-MAN"
+      ],
+      "location_id": "LOC-PLATFORM",
+      "reference_asset_ids": [
+        "ASSET-CHAR-SHENQING",
+        "ASSET-CHAR-MAN",
+        "ASSET-PROP-ENVELOPE"
+      ],
+      "start_frame_asset_id": null,
+      "end_frame_asset_id": null,
+      "input_video_asset_id": null,
+      "voice_reference_asset_id": null,
+      "prompt": "竖屏9:16，半写实国风条漫，清晰轮廓线，有限色层；中景，机位在女性肩后偏右，画面左侧前景是她的背影与侧脸，右侧中景是坐在深绿长椅右端的男性，两人之间地面有一道明显光带。女性：24岁，短发齐耳、深藏蓝地铁制服、左手提金属钥匙串，反光背心挂在左臂，静止站在距长椅三步处。男性：约50岁，花白短发、发际线后移、眼窝深、右侧颧骨有约3厘米旧疤、下颌灰色胡茬，深灰夹克，双手压在膝上的一只闭合牛皮纸信封上。动作顺序：女性开口说话，男性缓慢转头看向她，视线与她相接；随后女性向前走一步，两人距离缩短为两步，停住。男性全程不站起，信封始终在他两手之下。摄影机随女性那一步轻微前推约十厘米后停止。顶灯冷白光从上方落下，环境声压低，无配乐。",
+      "negative_rules": [
+        "信封不得被拿起、放下或打开",
+        "男性不得站起",
+        "不出现可读文字",
+        "不出现额外人物"
+      ],
+      "start_state": {
+        "who": [
+          "CHAR-SHENQING",
+          "CHAR-MAN"
+        ],
+        "where": "LOC-PLATFORM",
+        "what": [
+          "钥匙串在沈青左手",
+          "信封在男人膝上、双手之下，未被拿起"
+        ],
+        "when": "深夜，末班车后",
+        "screen_geography": "沈青在画面左侧前景，男人在右侧中景，两人相距三步",
+        "story_phase": "沈青准备开口，男人视线朝向广告灯箱"
+      },
+      "end_state": {
+        "who": [
+          "CHAR-SHENQING",
+          "CHAR-MAN"
+        ],
+        "where": "LOC-PLATFORM",
+        "what": [
+          "两人距离缩短为两步",
+          "信封仍在男人膝上、双手之下"
+        ],
+        "when": "深夜，末班车后",
+        "screen_geography": "沈青略微前移，仍位于画面左侧；两人视线相接",
+        "story_phase": "沈青完成第一次介入，男人以转头回应"
+      },
+      "continuity_delta": {
+        "changed": [
+          "distance",
+          "man_gaze",
+          "shenqing_position"
+        ],
+        "why_changed": "沈青开口后主动向前一步；男人转头与她对视"
+      },
+      "continuity_bridge": "承接 SHOT-EP001-001 终点：沈青静止站在距长椅三步处，钥匙串在左手，男人保持坐姿。",
+      "camera": {
+        "shot_size": "双人中景",
+        "height": "与沈青肩高同高",
+        "movement": "随沈青那一步前推约 10cm 后停止",
+        "axis": "肩后越肩视角，保持沈青在画面左侧",
+        "focus_order": [
+          "沈青侧脸",
+          "男人的脸与视线",
+          "男人膝上的信封"
+        ]
+      },
+      "dialogue": {
+        "speaker": "沈青",
+        "text": "先生，末班车已经发出去了。",
+        "performance": "画外音（OS），语气平稳、克制，不带催促；说完不立即靠近，等对方回应"
+      },
+      "output": {
+        "clip_path": null,
+        "flow_asset_name": null,
+        "status": "not_generated",
+        "review_status": "pending"
+      }
+    },
+    {
+      "shot_id": "SHOT-EP001-003",
+      "source_scene_id": "EP001-SC002",
+      "purpose": "把注意力从两人关系收束到信封上，留下未决",
+      "duration_seconds": 7,
+      "generation_mode": "text",
+      "character_ids": [
+        "CHAR-MAN"
+      ],
+      "location_id": "LOC-PLATFORM",
+      "reference_asset_ids": [
+        "ASSET-PROP-ENVELOPE",
+        "ASSET-CHAR-MAN"
+      ],
+      "start_frame_asset_id": null,
+      "end_frame_asset_id": null,
+      "input_video_asset_id": null,
+      "voice_reference_asset_id": null,
+      "prompt": "竖屏9:16，半写实国风条漫，清晰轮廓线，有限色层；近景俯视，一只A5大小的旧牛皮纸信封平放在深灰色夹克下摆之上，牛皮纸原色，四角有明显磨损，封口处折入但未粘合，信封正面保持完全空白。一双约50岁男性的手平压在信封上，手背可见青筋与浅色斑点。动作：手指缓慢收紧，信封边缘随之被压出一道浅痕，随后动作停止。信封全程闭合，不被拿起、翻面或打开。摄影机极缓推近约5%后停止在信封中央。背景为虚化的深色长椅与站台地面。声音为轻微的布料摩擦声，无配乐。",
+      "negative_rules": [
+        "信封正面不得出现文字、手写字迹、印章或邮戳",
+        "信封不得被打开或翻面",
+        "不出现其他物件",
+        "不出现额外人物"
+      ],
+      "start_state": {
+        "who": [
+          "CHAR-MAN"
+        ],
+        "where": "LOC-PLATFORM",
+        "what": [
+          "双手平压在信封上，静止",
+          "信封闭合、正面空白"
+        ],
+        "when": "深夜，末班车后",
+        "screen_geography": "俯视，信封居中，背景为虚化长椅与站台地面",
+        "story_phase": "对话中止，沈青的提问悬置"
+      },
+      "end_state": {
+        "who": [
+          "CHAR-MAN"
+        ],
+        "where": "LOC-PLATFORM",
+        "what": [
+          "手指收紧，信封边缘出现浅痕",
+          "封口仍折入未粘合、未被打开"
+        ],
+        "when": "深夜，末班车后",
+        "screen_geography": "构图不变，略微推近，信封仍居中",
+        "story_phase": "未决被保留，本集到此收束"
+      },
+      "continuity_delta": {
+        "changed": [
+          "hand_tension",
+          "envelope_edge"
+        ],
+        "why_changed": "男人以无言的收紧动作回应沈青的提问"
+      },
+      "continuity_bridge": "承接 SHOT-EP001-002 终点：两人对视、距离两步，信封仍在男人膝上、双手之下。",
+      "camera": {
+        "shot_size": "信封近景",
+        "height": "俯视，接近垂直向下",
+        "movement": "极缓推近约 5%",
+        "axis": "俯视轴线，信封居中，不重新建立站台空间",
+        "focus_order": [
+          "信封正面空白区域",
+          "收紧的手指",
+          "被压出的边缘浅痕"
+        ]
+      },
+      "dialogue": {
+        "speaker": "男人",
+        "text": "不用。",
+        "performance": "画外音（OS），音量低、语速慢，不抬头；说完即静止"
+      },
+      "output": {
+        "clip_path": null,
+        "flow_asset_name": null,
+        "status": "not_generated",
+        "review_status": "pending"
+      }
+    }
+  ],
+  "approval": {
+    "batch_id": "EP001-FLOW-HANDOFF-V1",
+    "creator_confirmed": false,
+    "confirmed_at": null,
+    "notes": "示例数据。creator_confirmed 必须由创作者在看过预览后显式置为 true，且仅对本批次有效，不继承旧批次确认。"
+  }
+}

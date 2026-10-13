@@ -1,0 +1,16 @@
+# 跨平台换行符：仓库内统一 LF，checkout 时按平台
+* text=auto
+
+# 明确二进制，避免被当文本处理
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+
+# Windows 批处理必须 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf

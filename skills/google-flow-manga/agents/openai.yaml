@@ -1,0 +1,7 @@
+interface:
+  display_name: "Google Flow 漫剧连续性"
+  short_description: "为 Google Flow 漫剧准备连续性台账、镜头生产包与审核报告"
+  default_prompt: "Use $google-flow-manga to prepare and review this episode for Google Flow."
+
+policy:
+  allow_implicit_invocation: true

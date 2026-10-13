@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "status": "ok",
+  "package": "flow/EP001/flow-package.json",
+  "metrics": {
+    "assets": 4,
+    "characters": 2,
+    "locations": 1,
+    "shots": 3,
+    "errors": 0,
+    "warnings": 0
+  },
+  "errors": [],
+  "warnings": []
+}

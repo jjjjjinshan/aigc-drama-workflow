@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0",
+  "project_id": "<project-id>",
+  "episode_id": "<episode-id>",
+  "package_status": "draft",
+  "aspect_ratio": "9:16",
+  "source_documents": [
+    "<relative-path-to-storyboard.md>",
+    "<relative-path-to-video-prompts.md>"
+  ],
+  "style_lock": {
+    "summary": "<approved visual style>",
+    "palette": [],
+    "texture": [],
+    "negative_rules": []
+  },
+  "assets": [
+    {
+      "asset_id": "ASSET-CHAR-001",
+      "kind": "character",
+      "approved": false,
+      "path": "<relative-path-to-approved-reference.png>",
+      "flow_asset_name": null,
+      "usage": "ingredient",
+      "notes": "<identity, costume and state represented by this image>"
+    }
+  ],
+  "characters": [
+    {
+      "character_id": "CHAR-001",
+      "display_name": "<character-name>",
+      "appearance_lock": {
+        "face": "<face lock>",
+        "hair": "<hair lock>",
+        "costume": "<costume lock>",
+        "state": "<injury or condition lock>"
+      },
+      "avoid": [],
+      "reference_asset_ids": [
+        "ASSET-CHAR-001"
+      ]
+    }
+  ],
+  "locations": [
+    {
+      "location_id": "LOC-001",
+      "display_name": "<location-name>",
+      "state_lock": {
+        "time": "<time-of-day>",
+        "weather": "<weather>",
+        "practical_lights": "<visible light sources>",
+        "screen_geography": "<left-right and depth relationships>"
+      },
+      "reference_asset_ids": []
+    }
+  ],
+  "shots": [
+    {
+      "shot_id": "<episode-id>-S001-SH001",
+      "source_scene_id": "<episode-id>-S001",
+      "purpose": "<single dramatic job of this shot>",
+      "duration_seconds": 6,
+      "generation_mode": "ingredients",
+      "character_ids": [
+        "CHAR-001"
+      ],
+      "location_id": "LOC-001",
+      "reference_asset_ids": [
+        "ASSET-CHAR-001"
+      ],
+      "start_frame_asset_id": null,
+      "end_frame_asset_id": null,
+      "input_video_asset_id": null,
+      "voice_reference_asset_id": null,
+      "prompt": "<visible action, performance, environment movement, camera and sound for this shot only>",
+      "negative_rules": [],
+      "start_state": {
+        "who": [
+          "CHAR-001"
+        ],
+        "where": "LOC-001",
+        "what": [],
+        "when": "<story time>",
+        "screen_geography": "<blocking and gaze direction>",
+        "story_phase": "<knowledge and conflict state before the shot>"
+      },
+      "end_state": {
+        "who": [
+          "CHAR-001"
+        ],
+        "where": "LOC-001",
+        "what": [],
+        "when": "<story time>",
+        "screen_geography": "<blocking and gaze direction after the shot>",
+        "story_phase": "<knowledge and conflict state after the shot>"
+      },
+      "continuity_delta": {
+        "changed": [],
+        "why_changed": ""
+      },
+      "continuity_bridge": "",
+      "camera": {
+        "shot_size": "<shot size>",
+        "height": "<camera height>",
+        "movement": "<camera movement>",
+        "axis": "<screen direction or axis rule>",
+        "focus_order": []
+      },
+      "dialogue": {
+        "speaker": "",
+        "text": "",
+        "performance": ""
+      },
+      "output": {
+        "clip_path": null,
+        "flow_asset_name": null,
+        "status": "not_generated",
+        "review_status": "pending"
+      }
+    }
+  ],
+  "approval": {
+    "batch_id": "",
+    "creator_confirmed": false,
+    "confirmed_at": null,
+    "notes": ""
+  }
+}
