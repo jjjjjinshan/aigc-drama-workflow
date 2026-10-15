@@ -9,6 +9,10 @@ license: MIT
 把已确认镜头和起始帧写成有边界、可生成、可直接复制的 `episodes/<EP>/视频提示词.md`。
 每镜使用 `MOTION-...` 标题并引用对应 `SHOT-...`。
 
+每项按固定字段写，其中 `图像首帧 (Image Prompt)`、`运动描述 (Video Motion)`、`配音台词 (Audio TTS)`、
+`音效打点 (SFX Timeline)` 是生产与后期脚本读取的四个字段；字段全表见
+[阶段契约](references/stage-contract.md)。
+
 ## Quick Start
 
 ```text

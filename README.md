@@ -101,7 +101,7 @@ job -> prepare -> confirm -> run
 项目通过“资产定妆 -> 资产库锁定 -> 动态渲染”的三步管线实现高连贯性生成：
 
 1. ** Lookdev 资产锚定**：
-   `short-drama-assets` 提取 `CHAR_001` 等唯一资产 ID；`short-drama-image-prompts` 生成资产参考图提示词，渲染后存入 `/assets/lookdev/` 本地资产库。
+   `short-drama-assets` 提取 `CHAR-YECHEN` 等唯一资产 ID；`short-drama-image-prompts` 生成资产参考图提示词，渲染后存入 `/assets/lookdev/` 本地资产库。
 2. **分镜资产绑定**：
    `short-drama-storyboard` 设计分镜时，直接关联 `/assets/lookdev/` 中的资产 ID 与首帧参考图。
 3. **图生视频 (Image-to-Video) 触发**：
@@ -131,8 +131,8 @@ aigc-drama-workflow/
 │       └── 视频提示词.md
 ├── assets/                            # 本地 Lookdev 资产库
 │   └── lookdev/
-│       ├── CHAR_001_定妆照.png
-│       └── SCENE_001_概念图.png
+│       ├── CHAR-YECHEN_定妆照.png
+│       └── LOC-RUINS-BEDROOM_概念图.png
 └── dist/                              # 渲染输出目录
     └── EP001/
         ├── shot_001.mp4
@@ -145,9 +145,9 @@ aigc-drama-workflow/
 
 ### 样例 1：`分镜.md`（显式状态契约定义）
 ```markdown
-## [SHOT_003] 废墟中的反击
+## SHOT-EP001-003 · 废墟中的反击
 
-- **关联资产**: [CHAR_001] 叶辰, [SCENE_001] 废墟卧室
+- **关联资产**: [CHAR-YECHEN] 叶辰, [LOC-RUINS-BEDROOM] 废墟卧室
 - **镜头语言**: 中景，低角度仰拍，快推镜头
 - **起始状态 (start_state)**: 叶辰单膝下跪，双手抱头，身上穿着深色长袍。
 - **终止状态 (end_state)**: 叶辰单手撑地站起，双眼散发淡蓝色光芒，深色长袍随风扬起。
@@ -157,12 +157,12 @@ aigc-drama-workflow/
 
 ### 样例 2：`视频提示词.md`（运动与音频打点）
 ```markdown
-## [SHOT_003_PROMPT] 动态渲染参数
+## MOTION-EP001-003 · 动态渲染参数
 
-- **图像首帧 (Image Prompt)**: `/assets/lookdev/CHAR_001_定妆照.png`
+- **图像首帧 (Image Prompt)**: `/assets/lookdev/CHAR-YECHEN_定妆照.png`
 - **运动描述 (Video Motion)**: Slow push in, young man in dark robe stands up from knees, hands glowing with blue aura, wind blowing robe, cinematic lighting, 8k resolution.
-- **配音台词 (Audio TTS)**: CHAR_001 [情绪饱满]: "莫欺少年穷！"
-- **音效打点 (SFX Timeline)**: 00:01.5 插入能量音效 (SFX_ENERGY_01)
+- **配音台词 (Audio TTS)**: CHAR-YECHEN [情绪饱满]: "莫欺少年穷！"
+- **音效打点 (SFX Timeline)**: 00:01.5 插入能量音效 (SFX-ENERGY-01)
 ```
 
 ## 九、 生产 Adapter 与无平台绑定设计

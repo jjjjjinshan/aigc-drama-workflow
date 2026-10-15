@@ -9,6 +9,10 @@ license: MIT
 把剧本和视觉事实转成有镜头职责、空间连续性和可冻结起点的 `episodes/<EP>/分镜.md`。
 每镜使用二级标题 `## SHOT-...`，同镜下用 `### 冻结关键帧提示词` 写起始帧正文。
 
+每镜按固定字段写，其中 `起始状态 (start_state)`、`终止状态 (end_state)`、`状态变化 (continuity_delta)`、
+`变化解释 (why_changed)` 是显式状态契约的四要素，缺一按结构缺陷处理；字段全表见
+[阶段契约](references/stage-contract.md)。
+
 ## Quick Start
 
 ```text
