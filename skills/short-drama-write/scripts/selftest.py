@@ -46,7 +46,7 @@ def measure_text(body: str, project: dict[str, object] | None = None) -> dict[st
         build_index(
             screenplay,
             index_path,
-            source_ref="剧集/EP001/screenplay.md",
+            source_ref="episodes/EP001/screenplay.md",
             speakers=["甲"],
         )
         records = [
@@ -142,7 +142,7 @@ def main() -> int:
         summary = build_index(
             screenplay,
             index_path,
-            source_ref="剧集/EP001/screenplay.md",
+            source_ref="episodes/EP001/screenplay.md",
             speakers=["陈予安"],
         )
         require(summary["review_status"] == "clean", "valid screenplay index")
@@ -158,7 +158,7 @@ def main() -> int:
             "sources": {
                 "screenplay-index": {
                     "owner": "short-drama-write",
-                    "artifact": "剧集/EP001/screenplay-index.jsonl",
+                    "artifact": "episodes/EP001/screenplay-index.jsonl",
                     "hash": hashlib.sha256(index_bytes).hexdigest(),
                 }
             },
@@ -182,7 +182,7 @@ def main() -> int:
                 line,
                 source_ref={
                     "owner": "short-drama-write",
-                    "artifact": "剧集/EP001/screenplay-index.jsonl",
+                    "artifact": "episodes/EP001/screenplay-index.jsonl",
                     "hash": hashlib.sha256(index_bytes).hexdigest(),
                     "record_id": dialogue["block_id"],
                 },

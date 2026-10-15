@@ -100,16 +100,11 @@
 <text x="1016.0" y="635.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">台词与音效打点</text>
 <rect x="200.0" y="690.0" width="1036.0" height="96.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
 <text x="20.0" y="726.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#2F9E77" text-anchor="start" font-weight="700">阶段五</text>
-<text x="20.0" y="744.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="9.5" fill="#6B7683" text-anchor="start">视听合成与交付</text>
-<rect x="232.0" y="706.0" width="471.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
-<path d="M 242.0 706.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#2F9E77"/>
-<text x="248.0" y="733.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">FFmpeg 自动化剪辑 / 剪映草稿导出</text>
-<text x="248.0" y="753.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">按时间线打点合成</text>
-<line x1="709.0" y1="737.0" x2="747.0" y2="737.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
-<rect x="751.0" y="706.0" width="471.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
-<path d="M 761.0 706.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#2F9E77"/>
-<text x="767.0" y="733.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">🎬 成片与标准化交付包</text>
-<text x="767.0" y="753.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">本地成片与 Flow 生产包出口</text>
+<text x="20.0" y="744.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="9.5" fill="#6B7683" text-anchor="start">交付</text>
+<rect x="417.0" y="706.0" width="620.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 427.0 706.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#2F9E77"/>
+<text x="433.0" y="733.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">🎬 成片与标准化交付包</text>
+<text x="433.0" y="753.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">剪辑由创作者完成，本阶段只交付素材与生产包</text>
 <line x1="718.0" y1="199.0" x2="718.0" y2="215.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
 <line x1="718.0" y1="317.0" x2="718.0" y2="333.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
 <line x1="718.0" y1="435.0" x2="718.0" y2="451.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>

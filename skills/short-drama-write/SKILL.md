@@ -6,7 +6,7 @@ license: MIT
 
 # 短剧写作
 
-把单集意图写成可表演、可拍摄、会改变故事状态的 `剧集/<EP>/剧本.md`。
+把单集意图写成可表演、可拍摄、会改变故事状态的 `episodes/<EP>/剧本.md`。
 
 ## Quick Start
 
@@ -72,8 +72,8 @@ license: MIT
 
 ```text
 python3 -c "from pathlib import Path; import tempfile, uuid; print(Path(tempfile.gettempdir()) / ('short-drama-' + uuid.uuid4().hex + '.jsonl'))"
-python3 "{技能目录}/scripts/screenplay_index.py" "剧集/EP001/剧本.md" --output "粘贴第一条命令输出的完整路径" --speaker "本集角色一" --speaker "本集角色二"
-python3 "{技能目录}/scripts/duration_estimate.py" "剧集/EP001/剧本.md" --index "粘贴第一条命令输出的完整路径"
+python3 "{技能目录}/scripts/screenplay_index.py" "episodes/EP001/剧本.md" --output "粘贴第一条命令输出的完整路径" --speaker "本集角色一" --speaker "本集角色二"
+python3 "{技能目录}/scripts/duration_estimate.py" "episodes/EP001/剧本.md" --index "粘贴第一条命令输出的完整路径"
 ```
 
 估算是参考，不是门禁；没有语速或动作段速率时只报告可数事实，不猜秒数。但任务已给目标时长时，

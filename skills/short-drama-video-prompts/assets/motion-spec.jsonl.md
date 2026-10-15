@@ -7,7 +7,7 @@
 也在这里声明。
 
 ```jsonl
-{"record_type":"sources","schema_version":"1.0.0","sources":{"shots":{"owner":"short-drama-storyboard","artifact":"剧集/<EP>/storyboard/shots.jsonl"},"keyframes":{"owner":"short-drama-storyboard","artifact":"剧集/<EP>/storyboard/keyframes.jsonl"},"screenplay-index":{"owner":"short-drama-write","artifact":"剧集/<EP>/screenplay-index.jsonl"},"characters":{"owner":"short-drama-assets","artifact":"设定集/characters.jsonl"},"short-drama":{"owner":"creator","artifact":"short-drama.json"}}}
+{"record_type":"sources","schema_version":"1.0.0","sources":{"shots":{"owner":"short-drama-storyboard","artifact":"episodes/<EP>/storyboard/shots.jsonl"},"keyframes":{"owner":"short-drama-storyboard","artifact":"episodes/<EP>/storyboard/keyframes.jsonl"},"screenplay-index":{"owner":"short-drama-write","artifact":"episodes/<EP>/screenplay-index.jsonl"},"characters":{"owner":"short-drama-assets","artifact":"设定集/characters.jsonl"},"short-drama":{"owner":"creator","artifact":"short-drama.json"}}}
 ```
 
 其后每行一个候选运动规格对象。引用写 `src` 加它指向的记录 `record_id` 或字段 `field`；

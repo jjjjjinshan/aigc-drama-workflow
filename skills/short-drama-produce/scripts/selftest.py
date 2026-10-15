@@ -44,7 +44,7 @@ def main() -> int:
             "adapter": "fixture",
             "prompt": "restrained instrumental tension",
             "references": [],
-            "outputs": ["剧集/EP001/制作成果/music/cue.wav"],
+            "outputs": ["dist/EP001/music/cue.wav"],
             "parameters": {"is_instrumental": True},
             "overwrite": False,
         }
@@ -90,7 +90,7 @@ def main() -> int:
             "modality": "image",
             "prompt": "portrait",
             "references": [],
-            "outputs": ["制作成果/portrait.png"],
+            "outputs": ["dist/EP001/portrait.png"],
             "parameters": {"size": "1024x1024"},
         }
         )["model"]
@@ -103,7 +103,7 @@ def main() -> int:
             "modality": "video",
             "prompt": "slow push in",
             "references": [],
-            "outputs": ["制作成果/shot.mp4"],
+            "outputs": ["dist/EP001/shot.mp4"],
             "parameters": {"duration": 5, "ratio": "9:16"},
         },
         model="configured-endpoint",
@@ -118,7 +118,7 @@ def main() -> int:
             "modality": "music",
             "prompt": "restrained score",
             "references": [],
-            "outputs": ["制作成果/cue.mp3"],
+            "outputs": ["dist/EP001/cue.mp3"],
             "parameters": {"is_instrumental": True},
         }
         )["model"]

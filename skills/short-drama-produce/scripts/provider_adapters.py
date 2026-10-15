@@ -912,15 +912,15 @@ def _run_minimax(job: Mapping[str, Any]) -> tuple[Path, str | None]:
 def _selftest() -> None:
     image = {
         "modality": "image", "prompt": "portrait", "references": [],
-        "outputs": ["制作成果/a.png"], "parameters": {"width": 1024, "height": 1536},
+        "outputs": ["dist/EP001/a.png"], "parameters": {"width": 1024, "height": 1536},
     }
     video = {
         "modality": "video", "prompt": "slow push in", "references": [],
-        "outputs": ["制作成果/a.mp4"], "parameters": {"duration": 5, "ratio": "9:16"},
+        "outputs": ["dist/EP001/a.mp4"], "parameters": {"duration": 5, "ratio": "9:16"},
     }
     music = {
         "modality": "music", "prompt": "cinematic", "references": [],
-        "outputs": ["制作成果/a.mp3"], "parameters": {"lyrics": "[Verse]\nHello"},
+        "outputs": ["dist/EP001/a.mp3"], "parameters": {"lyrics": "[Verse]\nHello"},
     }
     if compile_gpt_image_2_payload(image)["model"] != OPENAI_MODEL:
         raise RuntimeError("GPT Image 2 self-test failed")

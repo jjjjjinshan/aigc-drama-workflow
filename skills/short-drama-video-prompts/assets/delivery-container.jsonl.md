@@ -11,7 +11,7 @@
 `artifact`，后面的记录用它的 key 引用。key 用产物文件名派生的短小写名字，在本文件内稳定且唯一。
 
 ```jsonl
-{"record_type":"sources","schema_version":"1.0.0","sources":{"shots":{"owner":"short-drama-storyboard","artifact":"剧集/<EP>/storyboard/shots.jsonl"},"motion-specs":{"owner":"short-drama-video-prompts","artifact":"剧集/<EP>/storyboard/motion-specs.jsonl"},"short-drama":{"owner":"creator","artifact":"short-drama.json"}}}
+{"record_type":"sources","schema_version":"1.0.0","sources":{"shots":{"owner":"short-drama-storyboard","artifact":"episodes/<EP>/storyboard/shots.jsonl"},"motion-specs":{"owner":"short-drama-video-prompts","artifact":"episodes/<EP>/storyboard/motion-specs.jsonl"},"short-drama":{"owner":"creator","artifact":"short-drama.json"}}}
 ```
 
 其后每行一个容器记录，引用写 `src` 加它指向的记录 `record_id` 或字段 `field`：

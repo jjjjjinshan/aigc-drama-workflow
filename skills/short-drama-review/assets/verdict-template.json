@@ -2,7 +2,7 @@
   "sources": {
     "screenplay": {
       "owner": "short-drama-write",
-      "artifact": "剧集/EP001/screenplay.md"
+      "artifact": "episodes/EP001/screenplay.md"
     },
     "findings": {
       "owner": "short-drama-review",

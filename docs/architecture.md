@@ -99,13 +99,16 @@ job → prepare → confirm → run
    │
    ├─▶ 项目开发/                      ← 开发层（简报、引擎、分集地图）
    │
-   ├─▶ 剧集/<EP>/                     ← 创作层（五份文档）
+   ├─▶ episodes/<EP>/                 ← 创作层（五份文档）
    │      ├── 剧本.md
    │      ├── 视觉设定.md
    │      ├── 图片提示词.md
    │      ├── 分镜.md
-   │      ├── 视频提示词.md
-   │      └── 制作成果/               ← 生产层（图片、视频、音频）
+   │      └── 视频提示词.md
+   │
+   ├─▶ assets/lookdev/                ← 本地 Lookdev 资产库（定妆照 / 概念图 / 道具卡）
+   │
+   ├─▶ dist/<EP>/                     ← 生产层（图片、视频、音频）
    │
    ├─▶ flow/<EP>/                     ← Flow 生产包
    │      ├── flow-package.json
@@ -116,6 +119,8 @@ job → prepare → confirm → run
    └─▶ 审查/<EP>-审查.md              ← 质量层
 ```
 
+> 旧的 `剧集/<EP>/` 与 `剧集|episodes/<EP>/制作成果/` 仍然可读，但新项目一律用 `episodes/<EP>/` 与 `dist/<EP>/`。
+
 ## 所有权矩阵
 
 每个产物有且只有一个 owner。下游只读上游，发现问题写审查报告并路由回正确的层。
@@ -124,12 +129,12 @@ job → prepare → confirm → run
 |---|---|
 | `项目开发/source-analysis/**` | `short-drama-novel-analyze` |
 | `项目开发/creative-brief.md` 等 | `short-drama-develop` |
-| `剧集/<EP>/剧本.md` | `short-drama-write` |
-| `剧集/<EP>/视觉设定.md` | `short-drama-assets` |
-| `剧集/<EP>/图片提示词.md` | `short-drama-image-prompts` |
-| `剧集/<EP>/分镜.md` | `short-drama-storyboard` |
-| `剧集/<EP>/视频提示词.md` | `short-drama-video-prompts` |
-| `剧集/<EP>/制作成果/**` | `short-drama-produce` |
+| `episodes/<EP>/剧本.md` | `short-drama-write` |
+| `episodes/<EP>/视觉设定.md` | `short-drama-assets` |
+| `episodes/<EP>/图片提示词.md` | `short-drama-image-prompts` |
+| `episodes/<EP>/分镜.md` | `short-drama-storyboard` |
+| `episodes/<EP>/视频提示词.md` | `short-drama-video-prompts` |
+| `dist/<EP>/**` | `short-drama-produce` |
 | `flow/<EP>/**` | `google-flow-manga` |
 | `审查/**` | `short-drama-review` |
 

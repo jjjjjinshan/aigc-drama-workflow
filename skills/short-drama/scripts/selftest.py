@@ -202,7 +202,7 @@ def main() -> int:
     expanded, finding = resolve_ref(
         {
             "owner": "short-drama-write",
-            "artifact": "剧集/EP001/screenplay-index.jsonl",
+            "artifact": "episodes/EP001/screenplay-index.jsonl",
             "hash": "a" * 64,
             "record_id": "BLK-EP001-SC001-A01",
         },
@@ -233,7 +233,7 @@ def main() -> int:
             root,
             owner="selftest",
             artifact_id="SELFTEST-001",
-            outputs={"剧集/EP001/screenplay.md": "# EP001\n"},
+            outputs={"episodes/EP001/screenplay.md": "# EP001\n"},
         )
         require(published["state"] == "needs_confirmation", "publication state")
 
@@ -244,7 +244,7 @@ def main() -> int:
                 "sources": {
                     "screenplay": {
                         "owner": "short-drama-write",
-                        "artifact": "剧集/EP001/screenplay.md",
+                        "artifact": "episodes/EP001/screenplay.md",
                         "hash": "a" * 64,
                     }
                 },
@@ -259,7 +259,7 @@ def main() -> int:
             root,
             owner="selftest",
             artifact_id="SELFTEST-002",
-            outputs={"剧集/EP001/storyboard/shots.jsonl": f"{header}\n{record}\n"},
+            outputs={"episodes/EP001/storyboard/shots.jsonl": f"{header}\n{record}\n"},
         )
         require(
             declared_publication["state"] == "needs_confirmation",

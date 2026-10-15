@@ -52,7 +52,7 @@ license: MIT
 python3 {技能目录}/scripts/project_tool.py init ./my-drama --title "示例短剧"
 ```
 
-`init` 只建立配置和空目录；第一次创作时再把文档写入 `剧集/<EP>/`，不预建空文件。
+`init` 只建立配置和空目录；第一次创作时再把文档写入 `episodes/<EP>/`，不预建空文件。
 项目定位与安全写入见 [运行预检](references/runtime-preflight.md)。用户明确要求 Dashboard 时运行：
 
 ```bash

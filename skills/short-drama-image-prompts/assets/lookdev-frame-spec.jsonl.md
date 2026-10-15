@@ -27,7 +27,7 @@
     },
     "screenplay-index": {
       "owner": "short-drama-write",
-      "artifact": "剧集/<EP>/screenplay-index.jsonl"
+      "artifact": "episodes/<EP>/screenplay-index.jsonl"
     },
     "<reference>": {
       "owner": "<reference-owner>",

@@ -47,7 +47,7 @@ BOUNDED_SHOT: dict[str, Any] = {
 }
 SHOTS_SOURCE: dict[str, Any] = {
     "owner": "short-drama-storyboard",
-    "artifact": "剧集/EP001/storyboard/shots.jsonl",
+    "artifact": "episodes/EP001/storyboard/shots.jsonl",
     "hash": "a" * 64,
 }
 COVERAGE: dict[str, Any] = {
@@ -100,7 +100,7 @@ def test_screenplay_coverage_flags_gaps_and_double_claims() -> None:
         sources = {
             "screenplay-index": {
                 "owner": "short-drama-write",
-                "artifact": "剧集/EP001/screenplay-index.jsonl",
+                "artifact": "episodes/EP001/screenplay-index.jsonl",
             }
         }
         shots = [

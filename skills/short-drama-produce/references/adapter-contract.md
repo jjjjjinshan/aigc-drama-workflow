@@ -9,7 +9,7 @@
   "modality": "video",
   "adapter": "studio-video",
   "prompt": "the exact copyable prompt from MOTION-EP001-001",
-  "source": "剧集/EP001/视频提示词.md",
+  "source": "episodes/EP001/视频提示词.md",
   "source_entry": "MOTION-EP001-001",
   "reference_bindings": [
     {
@@ -23,7 +23,7 @@
     }
   ],
   "references": ["输入/approved-character-reference.png"],
-  "outputs": ["剧集/EP001/制作成果/video/SHOT-EP001-001.mp4"],
+  "outputs": ["dist/EP001/video/SHOT-EP001-001.mp4"],
   "parameters": {"duration": 5, "ratio": "9:16"},
   "overwrite": false
 }
@@ -34,7 +34,7 @@
   must not be smuggled into every shot's video job.
 - `source`: optional current project text/spec that owns the prompt.
 - `source_entry`: for a creator-first job, the exact uppercase `IMG-*` or `MOTION-*`
-  H2 ID inside the canonical `剧集|episodes/<EP>/图片提示词.md|视频提示词.md`
+  H2 ID inside the canonical `episodes|剧集/<EP>/图片提示词.md|视频提示词.md`
   `source`. A new image/video job pointing to either canonical filename must
   provide the matching selector; an arbitrary Markdown file cannot impersonate a
   creator source. `prepare` selects that section and requires `prompt` to exactly
@@ -48,8 +48,9 @@
 - `references`: zero to sixteen current project files actually sent to production.
   It may be omitted when `reference_bindings` is present, in which case the paths
   are derived in binding order. If both are present, they must match exactly.
-- `outputs`: one to sixteen unique paths rooted at top-level `production/` or
-  `剧集|episodes/<EP>/制作成果|production/`; extensions must match the modality.
+- `outputs`: one to sixteen unique paths rooted at top-level `dist/<EP>/`
+  (legacy layouts: `production/` or `episodes|剧集/<EP>/制作成果|production/`);
+  extensions must match the modality.
   A nested directory merely named `production` does not grant write access to
   protected input or delivery trees.
 - `parameters`: provider-neutral public settings only. Secret-like keys are rejected.
@@ -119,7 +120,7 @@ project paths:
 {
   "outputs": [
     {
-      "target": "剧集/EP001/制作成果/images/SHOT001.png",
+      "target": "dist/EP001/images/SHOT001.png",
       "source": "/temporary/adapter/result.png"
     }
   ],

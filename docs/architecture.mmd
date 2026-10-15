@@ -31,9 +31,8 @@ graph TD
         F3 --> F4[TTS 配音 / 音效 BGM 批处理]
     end
 
-    subgraph 阶段五：视听合成与交付
-        F4 --> G1[FFmpeg 自动化剪辑 / 剪映草稿导出]
-        G1 --> G2[🎬 成片与标准化交付包]
+    subgraph 阶段五：交付
+        F4 --> G2[🎬 成片与标准化交付包]
     end
 
     R[short-drama 总控<br/>初始化 / 路由调度 / Dashboard] -.-> D1

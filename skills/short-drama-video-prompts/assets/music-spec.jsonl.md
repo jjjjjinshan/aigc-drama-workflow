@@ -9,7 +9,7 @@ once. A source key is short, lowercase and derived from the artifact basename;
 it stays stable and unique within the file.
 
 ```jsonl
-{"record_type":"sources","schema_version":"1.0.0","sources":{"screenplay":{"owner":"short-drama-write","artifact":"剧集/EP001/screenplay.md"}}}
+{"record_type":"sources","schema_version":"1.0.0","sources":{"screenplay":{"owner":"short-drama-write","artifact":"episodes/EP001/screenplay.md"}}}
 ```
 
 Every record after the header names the snapshot through its key:

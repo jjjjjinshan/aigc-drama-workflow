@@ -6,11 +6,11 @@
 
 | 阶段 | owner | 文件 |
 |---|---|---|
-| 剧本 | `short-drama-write` | `剧集/<EP>/剧本.md` |
-| 视觉资产 | `short-drama-assets` | `剧集/<EP>/视觉设定.md` |
-| 分镜与冻结关键帧 | `short-drama-storyboard` | `剧集/<EP>/分镜.md` |
-| 图片提示词 | `short-drama-image-prompts` | `剧集/<EP>/图片提示词.md` |
-| 视频提示词 | `short-drama-video-prompts` | `剧集/<EP>/视频提示词.md` |
+| 剧本 | `short-drama-write` | `episodes/<EP>/剧本.md` |
+| 视觉资产 | `short-drama-assets` | `episodes/<EP>/视觉设定.md` |
+| 分镜与冻结关键帧 | `short-drama-storyboard` | `episodes/<EP>/分镜.md` |
+| 图片提示词 | `short-drama-image-prompts` | `episodes/<EP>/图片提示词.md` |
+| 视频提示词 | `short-drama-video-prompts` | `episodes/<EP>/视频提示词.md` |
 
 没有内容时不预建空文件。一个请求只创建它实际需要的文档；从剧本、视觉设定、分镜或提示词任一
 阶段直接进入都合法，不为补齐名义流水线伪造上游。
@@ -20,7 +20,7 @@
 写法见 [五份创作文档](creator-documents.md)。
 
 长篇原著拆解或多集材料识别可以在 `项目开发/` 使用机器索引；它们是用户点名时才建立的可选分析
-工作区，不是单集创作真相。其存在不会改变 `剧集/<EP>/` 的五文档布局，也不能要求单集 owner
+工作区，不是单集创作真相。其存在不会改变 `episodes/<EP>/` 的五文档布局，也不能要求单集 owner
 补造并行结构化产物。
 
 创作者说明跟随项目语言。图片、关键帧和视频的可复制正文跟随 `prompt_language`；没有
@@ -53,4 +53,4 @@
 图片、视频、TTS 和音乐生产仍遵守 `preview -> explicit confirm -> run`。生产工具可以在隐藏运行目录
 保存 job、确认和审计记录；这些是付费/外部副作用的必要边界，不要求模型把创作内容再抄成长期
 JSON/JSONL。job 必须把拥有当前提示词的 Markdown 写入 `source`，输出写到
-`剧集/<EP>/制作成果/`；任何提示词、参数、输入或输出路径变化都需要重新预览和确认。
+`dist/<EP>/`；任何提示词、参数、输入或输出路径变化都需要重新预览和确认。

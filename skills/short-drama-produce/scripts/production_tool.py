@@ -42,6 +42,7 @@ PROJECT_CONTENT_DIRECTORIES = frozenset(
         "input",
         "项目开发",
         "设定集",
+        "assets",
         "剧集",
         "episodes",
         "flow",
@@ -213,17 +214,24 @@ def _relative_path(value: object, *, output: bool = False) -> str:
         raise ValueError(f"operational project path is not allowed: {value}")
     if output:
         parts = pure.parts
+        # 规范布局：顶层 dist/<EP>/...
+        canonical_dist = (
+            len(parts) >= 3
+            and parts[0].casefold() == "dist"
+            and re.fullmatch(r"EP\d{3,}", parts[1], re.IGNORECASE) is not None
+        )
+        # 旧布局：顶层 production/，或 episodes|剧集/<EP>/制作成果|production/
         top_level_production = len(parts) >= 2 and parts[0].casefold() == "production"
         episode_production = (
             len(parts) >= 4
-            and parts[0] in {"剧集", "episodes"}
+            and parts[0] in {"episodes", "剧集"}
             and re.fullmatch(r"EP\d{3,}", parts[1], re.IGNORECASE) is not None
             and parts[2] in {"制作成果", "production"}
         )
-        if not top_level_production and not episode_production:
+        if not canonical_dist and not top_level_production and not episode_production:
             raise ValueError(
-                "media outputs must use top-level production/ or "
-                "剧集|episodes/<EP>/制作成果|production/"
+                "media outputs must use dist/<EP>/ "
+                "(legacy: production/ or episodes|剧集/<EP>/制作成果|production/)"
             )
     return pure.as_posix()
 

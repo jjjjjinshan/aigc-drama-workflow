@@ -63,12 +63,13 @@ CANONICAL_ROOTS = {
     "inputs": "输入",
     "development": "项目开发",
     "bible": "设定集",
-    "episodes": "剧集",
+    "episodes": "episodes",
     "delivery": "交付",
     "creator-decisions": "创作者决策",
     "reviews": "审查",
 }
-LEGACY_ROOTS = {role: role for role in CANONICAL_ROOTS}
+#: 旧目录名。读取时仍然接受，写入与提示一律使用 CANONICAL_ROOTS。
+LEGACY_ROOTS = {role: role for role in CANONICAL_ROOTS} | {"episodes": "剧集"}
 ROOT_ROLE_ALIASES: dict[str, str] = {
     name.casefold(): role
     for roots in (CANONICAL_ROOTS, LEGACY_ROOTS)
@@ -603,7 +604,7 @@ def _validate_publication_layout(
         raise ValueError("creator authority file cannot be a publication target")
     if role == "episodes":
         if len(pure.parts) < 3:
-            raise ValueError("episode artifacts live in 剧集/<EP>/（兼容 episodes/<EP>/）")
+            raise ValueError("episode artifacts live in episodes/<EP>/（兼容 剧集/<EP>/）")
         if EPISODE_ID_RE.fullmatch(pure.parts[1]) is None:
             raise ValueError(f"episode directory must use an EP001-style identifier: {pure.parts[1]}")
     if not allow_unregistered and role not in PUBLISHABLE_ROOT_ROLES:

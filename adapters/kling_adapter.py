@@ -425,7 +425,7 @@ class KlingAdapter(BaseAdapter):
                             "must_not_control": ["构图", "动作"],
                         }
                     ],
-                    "outputs": ["剧集/EP001/制作成果/video/SHOT-EP001-001.mp4"],
+                    "outputs": ["dist/EP001/video/SHOT-EP001-001.mp4"],
                     "parameters": {"duration": 5, "ratio": "9:16", "cfg_scale": 0.5},
                     "overwrite": False,
                     "run_id": "run-selftest",
@@ -467,7 +467,7 @@ class KlingAdapter(BaseAdapter):
 
                 image_payload = dict(no_reference)
                 image_payload["modality"] = "image"
-                image_payload["outputs"] = ["剧集/EP001/制作成果/images/SHOT-EP001-001.png"]
+                image_payload["outputs"] = ["dist/EP001/images/SHOT-EP001-001.png"]
                 image_payload["parameters"] = {"ratio": "9:16"}
                 if KlingAdapter(ProductionJob(image_payload)).endpoints()[0] != "images/generations":
                     raise AssertionError("图片任务端点错误")

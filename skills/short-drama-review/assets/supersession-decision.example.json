@@ -2,15 +2,15 @@
   "sources": {
     "motion-specs-alternate": {
       "owner": "short-drama-video-prompts",
-      "artifact": "剧集/EP001/storyboard/motion-specs.jsonl"
+      "artifact": "episodes/EP001/storyboard/motion-specs.jsonl"
     },
     "motion-specs-master": {
       "owner": "short-drama-video-prompts",
-      "artifact": "剧集/EP001/storyboard/motion-specs.jsonl"
+      "artifact": "episodes/EP001/storyboard/motion-specs.jsonl"
     },
     "shots": {
       "owner": "short-drama-storyboard",
-      "artifact": "剧集/EP001/storyboard/shots.jsonl"
+      "artifact": "episodes/EP001/storyboard/shots.jsonl"
     }
   },
   "example_only": true,

@@ -323,7 +323,7 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print(f"OK: {args.episode}")
+    print("OK: 0 error(s), 0 warning(s)")
     return 0
 
 

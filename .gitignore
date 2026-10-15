@@ -40,13 +40,22 @@ _work/
 # ── 渲染产物与本地资产库 ──────────────────────────────
 # 一次跑图跑视频就可能产生几 GB 二进制，全部留在本地。
 # 注意：这里只写锚定到仓库根的路径，避免误伤 skills/*/assets/ 这类需要入库的模板。
-/剧集/*/制作成果/
-/episodes/*/制作成果/
+/dist/
 /production/
-/assets/
 /输入/
 /input/
 /交付/
+
+# 本地 Lookdev 资产库：只保留说明文件，渲染出的定妆照 / 概念图 / 道具卡不入库
+/assets/lookdev/*.png
+/assets/lookdev/*.jpg
+/assets/lookdev/*.jpeg
+/assets/lookdev/*.webp
+/assets/lookdev/*.psd
+
+# 旧布局兼容（中文目录名）
+/episodes/*/制作成果/
+/剧集/*/制作成果/
 
 # 生成媒体：整类忽略，避免漏网的大文件
 *.mp4

@@ -2,11 +2,11 @@
   "sources": {
     "shots": {
       "owner": "short-drama-storyboard",
-      "artifact": "剧集/EP001/storyboard/shots.jsonl"
+      "artifact": "episodes/EP001/storyboard/shots.jsonl"
     },
     "screenplay-index": {
       "owner": "short-drama-write",
-      "artifact": "剧集/EP001/screenplay-index.jsonl"
+      "artifact": "episodes/EP001/screenplay-index.jsonl"
     },
     "short-drama": {
       "owner": "short-drama",

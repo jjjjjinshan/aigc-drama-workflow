@@ -11,7 +11,7 @@
 第一行声明本表引用的上游快照，一个快照只写一次：
 
 ```json
-{"record_type": "sources", "schema_version": "1.0.0", "sources": {"screenplay-index": {"owner": "short-drama-write", "artifact": "剧集/EP001/screenplay-index.jsonl"}}}
+{"record_type": "sources", "schema_version": "1.0.0", "sources": {"screenplay-index": {"owner": "short-drama-write", "artifact": "episodes/EP001/screenplay-index.jsonl"}}}
 ```
 
 其后每行一条待录台词，`source_ref` 用 `src` 指向上面声明的快照，加 `record_id` 指向其中的剧本块：

@@ -10,6 +10,9 @@ license: MIT
 `$short-drama-image-prompts`，视频提示词归 `$short-drama-video-prompts`，台词与录音表归
 `$short-drama-write`，声音身份归 `$short-drama-assets`。
 
+参考图的常规来源是项目根的 `assets/lookdev/`（本地 Lookdev 资产库，见
+`assets/lookdev/README.md`）与 `输入/`（创作者素材）。两者都用项目相对路径写进 `reference_bindings`。
+
 ## Quick Start
 
 只在用户明确要求实际生成后，从当前 `图片提示词.md`、`分镜.md` 或 `视频提示词.md` 中
@@ -17,7 +20,7 @@ license: MIT
 当前 Markdown，`source_entry` 必须点名对应的 `IMG-*` 或 `MOTION-*` 二级标题。存在真实参考图时，
 还必须逐张填写 `reference_bindings` 的槽位、顺序、路径、中文名、用途以及允许/禁止控制范围；
 `references` 可以省略并由绑定顺序生成，也可以作为相同顺序的显式镜像。输出放在
-`剧集/<EP>/制作成果/`；这个 job 是生产工具的临时输入，不是第六份创作文档：
+`dist/<EP>/`；这个 job 是生产工具的临时输入，不是第六份创作文档：
 
 ```bash
 python3 {技能目录}/scripts/production_tool.py prepare <project> --job <临时-job.json>
@@ -92,7 +95,7 @@ adapter 配置必须在项目外，只包含 argv 命令和超时；凭据由 ad
 存储读取。项目 job、确认记录、运行记录和 Dashboard 都不得保存密钥。
 
 脚本以 JSON stdin 调用 argv 数组，不使用 shell，不拼接命令。adapter 返回本地临时文件；工具只
-接受与已确认 targets 完全一致的结果，并把完整文件原子复制到项目的 `剧集/<EP>/制作成果/`
+接受与已确认 targets 完全一致的结果，并把完整文件原子复制到项目的 `dist/<EP>/`
 目录。项目和上游 Skill 不写死供应商、模型或即将变化的 API。
 
 内置图片/视频 compiler 会根据已确认的 `reference_bindings`，按顺序向供应商 prompt 附加一段确定性的
