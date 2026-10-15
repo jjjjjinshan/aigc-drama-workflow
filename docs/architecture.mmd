@@ -1,48 +1,42 @@
-%% AIGC 漫剧 / 短剧创作工作流 · 分层架构
-%% 可编辑源。改动后需重新导出 docs/architecture.svg 覆盖旧图。
-%% 分层职责的逐层说明见 architecture.md。
-
 graph TD
-    subgraph 输入层
-        I1[长篇小说 / 连载网文 / 故事想法]
-        I2[输入/ · 只读]
+    A[长篇小说 / 故事想法] --> B[short-drama-novel-analyze<br/>章节索引 / 功能提取 / 分集候选]
+    B --> C[short-drama-develop<br/>故事引擎 / 分集地图 / 改编边界]
+    
+    subgraph 阶段一：Creator-First 五份核心文档
+        C --> D1[剧本.md]
+        C --> D2[视觉设定.md]
+        C --> D3[图片提示词.md]
+        C --> D4[分镜.md]
+        C --> D5[视频提示词.md]
     end
 
-    subgraph 开发层
-        D1[short-drama-novel-analyze<br/>6 阶段管道]
-        D2[short-drama-develop<br/>创作简报 · 故事引擎 · 分集地图]
-        D1 --> D2
+    subgraph 阶段二：Lookdev 资产库构建
+        D2 --> L1[short-drama-image-prompts<br/>生成资产 Lookdev 提示词]
+        L1 --> L2[📁 /assets/lookdev/ 本地资产库<br/>角色定妆照 / 场景概念图 / 道具卡]
     end
 
-    subgraph 创作层
-        W1[剧本.md]
-        W2[视觉设定.md]
-        W3[图片提示词.md]
-        W4[分镜.md]
-        W5[视频提示词.md]
-        W1 --> W2 --> W3 --> W4 --> W5
+    subgraph 阶段三：硬闸门生产调度 (Produce Pipeline)
+        L2 --> E[short-drama-produce job]
+        D4 --> E
+        D5 --> E
+        E --> E1[prepare<br/>二值化门禁校验与看板预览]
+        E1 --> E2[confirm<br/>人类创作者确认，锁定 SHA-256 指纹]
+        E2 --> E3[run<br/>根据配置激活指定平台 Adapter]
     end
 
-    subgraph 生产层
-        P1[prepare<br/>门禁校验 · 预览与预算]
-        P2[confirm<br/>人类确认 · SHA-256 指纹]
-        P3[run<br/>指纹比对 · 调度 adapter]
-        P4[Adapter 路由<br/>参数映射 · 重试 · 下载]
-        P5[媒体渲染<br/>图 · 视频 · 配音 · 音乐]
-        P1 --> P2 --> P3 --> P4 --> P5
+    subgraph 阶段四：跨平台渲染与图生视频 (I2V)
+        E3 --> F1[API / Web Adapter 路由]
+        F1 -->|Base64 / 云端预上传| F2[文生图 / 资产首帧渲染]
+        F2 -->|首帧绑定 + 动态提示词| F3[图生视频 Image-to-Video 渲染]
+        F3 --> F4[TTS 配音 / 音效 BGM 批处理]
     end
 
-    subgraph 产出层
-        O1[成片与交付包<br/>剧集/EP/制作成果/]
-        O2[Flow 生产包<br/>flow/EP/ · 连续性台账 · 逐镜卡]
+    subgraph 阶段五：视听合成与交付
+        F4 --> G1[FFmpeg 自动化剪辑 / 剪映草稿导出]
+        G1 --> G2[🎬 成片与标准化交付包]
     end
 
-    I1 --> D1
-    D2 --> W1
-    W5 --> P1
-    P5 --> O1
-    P5 --> O2
-
-    R1[short-drama<br/>总控 · 路由 · Dashboard] -.-> W1
-    R2[short-drama-review<br/>独立审查 · 证据链定位] -.-> W1
-    R2 -.-> P1
+    R[short-drama 总控<br/>初始化 / 路由调度 / Dashboard] -.-> D1
+    Q[short-drama-review<br/>独立审查 / 证据链定位] -.-> D1
+    Q -.-> E
+    H[google-flow-manga<br/>Flow 生产包 / 逐镜卡出口适配器] -.-> E3

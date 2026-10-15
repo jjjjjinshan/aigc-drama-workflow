@@ -33,6 +33,25 @@ if sys.version_info < MINIMUM_PYTHON:
     )
 
 PROJECT_FILE = "short-drama.json"
+
+#: 项目内容目录。从子目录调用时，起点必须落在其中之一，否则拒绝向上解析项目根，
+#: 避免静默落到无关的祖先项目上。目录名与 docs/architecture.md 的所有权矩阵一致。
+PROJECT_CONTENT_DIRECTORIES = frozenset(
+    {
+        "输入",
+        "input",
+        "项目开发",
+        "设定集",
+        "剧集",
+        "episodes",
+        "flow",
+        "审查",
+        "交付",
+        "创作者决策",
+        "重构剧本",
+    }
+)
+
 PRODUCTION_ROOT = Path(".short-drama/production")
 JOB_SCHEMA = "1.0"
 JOB_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
@@ -151,13 +170,36 @@ def sha256_bytes(content: bytes) -> str:
 
 
 def find_project(start: Path) -> Path:
+    """从 ``start`` 向上找 ``short-drama.json``。
+
+    允许从项目内的子目录调用，但起点必须落在项目内容目录里。这样做的原因是：
+    如果起点不在任何内容目录内（例如在项目树里另建了一个沙盒或草稿目录），
+    继续向上找到的祖先项目多半不是调用者想要的那个，而静默落到祖先项目上
+    会产生写错项目、扣错费用这类无法回滚的后果。此时直接报错，让调用者
+    显式传入项目根目录。
+    """
     candidate = start.expanduser().resolve()
     if candidate.is_file():
         candidate = candidate.parent
     for directory in (candidate, *candidate.parents):
         if (directory / PROJECT_FILE).is_file():
+            if directory != candidate and not _inside_content_directory(candidate, directory):
+                raise FileNotFoundError(
+                    f"{candidate} 位于项目 {directory} 之下，但不在任何项目内容目录内"
+                    f"（{'、'.join(sorted(PROJECT_CONTENT_DIRECTORIES))}）；"
+                    f"请直接传入含 {PROJECT_FILE} 的项目根目录"
+                )
             return directory
     raise FileNotFoundError(f"no {PROJECT_FILE} found from {start}")
+
+
+def _inside_content_directory(start: Path, project: Path) -> bool:
+    try:
+        relative = start.relative_to(project)
+    except ValueError:
+        return False
+    parts = relative.parts
+    return bool(parts) and parts[0] in PROJECT_CONTENT_DIRECTORIES
 
 
 def _relative_path(value: object, *, output: bool = False) -> str:

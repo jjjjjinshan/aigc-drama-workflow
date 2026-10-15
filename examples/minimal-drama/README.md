@@ -14,6 +14,7 @@
 
 ```
 minimal-drama/
+├── short-drama.json                    ← 项目标记文件，也是项目级配置
 ├── 剧集/EP001/
 │   ├── 剧本.md          ← short-drama-write
 │   ├── 视觉设定.md      ← short-drama-assets
@@ -26,6 +27,9 @@ minimal-drama/
     ├── shot-cards/
     └── review/
 ```
+
+> `short-drama.json` 让这个示例成为一个**自洽的项目**：生产工具靠它定位项目根。
+> 少了它，工具会沿目录树向上找，可能落到外层无关的项目上。
 
 > 本示例**不附带图片**。`flow-package.json` 里的资产只按 `flow_asset_name` 登记（参考图留在 Flow 侧），
 > 所以仓库里没有任何二进制文件，clone 下来即可直接跑校验。
