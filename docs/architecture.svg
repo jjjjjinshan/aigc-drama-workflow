@@ -1,55 +1,148 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1072" width="1080" height="1072" role="img" aria-label="AIGC 漫剧 / 短剧创作 Agent 工作流">
-<defs><marker id="flow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M 0 0 L 12 6 L 0 12 z" fill="#8A94A6"/></marker></defs>
-<rect x="0.0" y="0.0" width="1080.0" height="1072.0" rx="0" fill="#FFFFFF"/>
-<text x="40.0" y="50.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="26" fill="#14181D" font-weight="700">AIGC 漫剧 / 短剧创作 Agent 工作流</text>
-<text x="40.0" y="80.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#5C6673">11 个职责隔离的 Skill 串成一条流水线：显式状态契约压住一致性漂移，SHA-256 指纹锁住成本上限。</text>
-<rect x="40.0" y="118.0" width="1000.0" height="92.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
-<path d="M 52.0 118.0 h -6 a 6 6 0 0 0 -6 6 v 80 a 6 6 0 0 0 6 6 h 6 z" fill="#3D6FD6"/>
-<text x="64.0" y="154.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#3D6FD6" font-weight="700">阶段 1</text>
-<text x="64.0" y="174.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6B7683">拆解改编</text>
-<text x="238.0" y="154.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="16" fill="#14181D" font-weight="600">长篇小说 / 故事想法 → 分析提取 → 故事引擎</text>
-<text x="238.0" y="178.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673">short-drama-novel-analyze（章节索引 · 功能提取 · 分集候选）→ short-drama-develop（创作简报 · 分集地图 · 改编边界）</text>
-<line x1="540.0" y1="218.0" x2="540.0" y2="250.0" stroke="#8A94A6" stroke-width="4.5" marker-end="url(#flow)"/>
-<rect x="40.0" y="256.0" width="1000.0" height="92.0" rx="14" fill="#FFFBF2" stroke="#EBD9B8" stroke-width="1"/>
-<path d="M 52.0 256.0 h -6 a 6 6 0 0 0 -6 6 v 80 a 6 6 0 0 0 6 6 h 6 z" fill="#C77C0A"/>
-<text x="64.0" y="292.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#C77C0A" font-weight="700">阶段 2</text>
-<text x="64.0" y="312.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6B7683">五份核心契约</text>
-<text x="238.0" y="292.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="16" fill="#14181D" font-weight="600">剧本.md → 视觉设定.md → 图片提示词.md</text>
-<text x="238.0" y="316.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673">视觉设定.md 同时分叉出 分镜.md；图片提示词.md 与 分镜.md 两条支线汇入 视频提示词.md</text>
-<text x="238.0" y="336.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673">每集只维护这五份 Markdown，一份事实只有一个 owner</text>
-<line x1="540.0" y1="356.0" x2="540.0" y2="388.0" stroke="#8A94A6" stroke-width="4.5" marker-end="url(#flow)"/>
-<rect x="40.0" y="394.0" width="1000.0" height="92.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
-<path d="M 52.0 394.0 h -6 a 6 6 0 0 0 -6 6 v 80 a 6 6 0 0 0 6 6 h 6 z" fill="#2F9E77"/>
-<text x="64.0" y="430.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#2F9E77" font-weight="700">阶段 3</text>
-<text x="64.0" y="450.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6B7683">Lookdev 资产库</text>
-<text x="238.0" y="430.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="16" fill="#14181D" font-weight="600">图片提示词.md → 资产渲染调度 → assets/lookdev/&lt;资产ID&gt;/</text>
-<text x="238.0" y="454.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673">角色定妆照 · 场景概念图 · 道具卡；分镜与图生视频从这里取首帧</text>
-<line x1="540.0" y1="494.0" x2="540.0" y2="526.0" stroke="#8A94A6" stroke-width="4.5" marker-end="url(#flow)"/>
-<rect x="40.0" y="532.0" width="1000.0" height="92.0" rx="14" fill="#FFF7F6" stroke="#EFCFCC" stroke-width="1"/>
-<path d="M 52.0 532.0 h -6 a 6 6 0 0 0 -6 6 v 80 a 6 6 0 0 0 6 6 h 6 z" fill="#D9534F"/>
-<text x="64.0" y="568.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#D9534F" font-weight="700">阶段 4</text>
-<text x="64.0" y="588.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6B7683">硬闸门调度</text>
-<text x="238.0" y="568.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="16" fill="#14181D" font-weight="600">分镜.md + 视频提示词.md + 资产库 → short-drama-produce</text>
-<text x="238.0" y="592.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673">prepare（二值化门禁校验）→ confirm（SHA-256 指纹锁定）→ run（激活指定平台 Adapter）</text>
-<text x="238.0" y="612.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673">四步不可合并；job / prompt / 参数 / 输出路径任一变化，旧确认立即失效</text>
-<line x1="540.0" y1="632.0" x2="540.0" y2="664.0" stroke="#8A94A6" stroke-width="4.5" marker-end="url(#flow)"/>
-<rect x="40.0" y="670.0" width="1000.0" height="92.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
-<path d="M 52.0 670.0 h -6 a 6 6 0 0 0 -6 6 v 80 a 6 6 0 0 0 6 6 h 6 z" fill="#0F7C8C"/>
-<text x="64.0" y="706.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#0F7C8C" font-weight="700">阶段 5</text>
-<text x="64.0" y="726.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6B7683">跨平台渲染</text>
-<text x="238.0" y="706.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="16" fill="#14181D" font-weight="600">Adapter 路由 → 文生图 / 首帧绑定 → 图生视频（I2V）→ TTS 配音 / 音效打点</text>
-<text x="238.0" y="730.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673">参考图以 Base64 或云端预上传传入；按 config.json 的 adapters 选定渲染平台</text>
-<line x1="540.0" y1="770.0" x2="540.0" y2="802.0" stroke="#8A94A6" stroke-width="4.5" marker-end="url(#flow)"/>
-<rect x="40.0" y="808.0" width="1000.0" height="92.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
-<path d="M 52.0 808.0 h -6 a 6 6 0 0 0 -6 6 v 80 a 6 6 0 0 0 6 6 h 6 z" fill="#7B1FA2"/>
-<text x="64.0" y="844.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#7B1FA2" font-weight="700">阶段 6</text>
-<text x="64.0" y="864.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#6B7683">成片交付</text>
-<text x="238.0" y="844.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="16" fill="#14181D" font-weight="600">dist/&lt;EP&gt;/ 渲染产物 → 创作者剪辑（FFmpeg / 剪映）→ 成片与交付包</text>
-<text x="238.0" y="868.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673">剪辑由创作者完成，工作流只负责交付素材与生产包</text>
-<rect x="40.0" y="940.0" width="1000.0" height="76.0" rx="14" fill="#FAFBFC" stroke="#D5DBE2" stroke-width="1" stroke-dasharray="6 5"/>
-<text x="64.0" y="972.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#7B8794" font-weight="700">横切服务（可介入任意阶段）</text>
-<text x="64.0" y="996.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="12" fill="#5C6673">short-drama 总控与路由  ·  short-drama-review 独立审查  ·  google-flow-manga Flow 生产包导出</text>
-<text x="40.0" y="1050.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#8A94A6">粗箭头 = 主链路顺序</text>
-<text x="230.0" y="1050.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#8A94A6">浅红块 = 需要人类确认的付费闸门</text>
-<text x="470.0" y="1050.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#8A94A6">虚线块 = 横切服务</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1540" role="img" aria-labelledby="title description">
+  <title id="title">AIGC 漫剧 / 短剧创作工作流架构</title>
+  <desc id="description">六阶段工作流：从故事拆解和五份 Markdown 创作契约，进入 Lookdev 资产准备、生产校验与逐镜确认，再经 Adapter 渲染并交付。总控、审查和 Google Flow 导出贯穿相关阶段。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="oklch(0.47 0.030 250)"/></marker>
+    <marker id="arrow-olive" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" height="7" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="oklch(0.45 0.100 110)"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" height="7" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="oklch(0.45 0.100 160)"/></marker>
+    <marker id="arrow-rust" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" height="7" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="oklch(0.48 0.130 68)"/></marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+      .panel { fill: oklch(0.985 0.006 110); stroke: oklch(0.88 0.018 250); stroke-width: 1.5; }
+      .stage-title { fill: oklch(0.23 0.025 110); font-size: 16px; font-weight: 700; }
+      .stage-note { fill: oklch(0.40 0.026 250); font-size: 12.5px; }
+      .node-title { fill: oklch(0.23 0.025 110); font-size: 14px; font-weight: 650; }
+      .node-note { fill: oklch(0.40 0.026 250); font-size: 12px; }
+      .arrow { fill: none; stroke: oklch(0.47 0.030 250); stroke-width: 2; marker-end: url(#arrow); }
+      .cross-arrow { fill: none; stroke: oklch(0.53 0.022 250); stroke-width: 1.8; stroke-dasharray: 7 6; marker-end: url(#arrow); }
+      .node-olive { fill: oklch(0.96 0.030 110); stroke: oklch(0.76 0.050 110); }
+      .node-paper { fill: oklch(0.97 0.025 85); stroke: oklch(0.78 0.070 85); }
+      .node-green { fill: oklch(0.96 0.035 155); stroke: oklch(0.73 0.070 155); }
+      .node-gate { fill: oklch(0.97 0.025 68); stroke: oklch(0.75 0.080 68); }
+      .node-confirm { fill: oklch(0.96 0.030 30); stroke: oklch(0.62 0.120 30); }
+      .node-render { fill: oklch(0.96 0.025 205); stroke: oklch(0.74 0.060 205); }
+      .node-deliver { fill: oklch(0.96 0.025 295); stroke: oklch(0.72 0.060 295); }
+    </style>
+  </defs>
+  <rect width="1120" height="1540" fill="oklch(1.000 0.000 0)"/>
+  <text x="40" y="54" fill="oklch(0.23 0.025 110)" font-size="26" font-weight="720">AIGC 漫剧 / 短剧创作工作流</text>
+  <text x="40" y="82" fill="oklch(0.40 0.026 250)" font-size="14">从故事拆解到成片交付：创作状态写入文档，付费渲染由创作者逐镜确认。</text>
+  <g transform="translate(40 112)">
+    <circle cx="5" cy="0" r="5" fill="oklch(0.45 0.100 110)"/><text x="17" y="4" fill="oklch(0.40 0.026 250)" font-size="12">创作流程</text>
+    <circle cx="112" cy="0" r="5" fill="oklch(0.45 0.100 160)"/><text x="124" y="4" fill="oklch(0.40 0.026 250)" font-size="12">Lookdev 资产</text>
+    <circle cx="260" cy="0" r="5" fill="oklch(0.48 0.130 68)"/><text x="272" y="4" fill="oklch(0.40 0.026 250)" font-size="12">人工确认门禁</text>
+  </g>
+
+  <rect class="panel" x="40" y="145" width="1040" height="145" rx="12"/>
+  <text class="stage-title" x="62" y="178">1 · 拆解改编</text>
+  <text class="stage-note" x="230" y="178">从原著或想法形成故事方案</text>
+  <rect class="node-olive" x="70" y="204" width="230" height="62" rx="9"/>
+  <text class="node-title" x="185" y="230" text-anchor="middle">长篇小说 / 故事想法</text>
+  <text class="node-note" x="185" y="250" text-anchor="middle">创作者输入</text>
+  <rect class="node-olive" x="430" y="204" width="230" height="62" rx="9"/>
+  <text class="node-title" x="545" y="230" text-anchor="middle">分析提取</text>
+  <text class="node-note" x="545" y="250" text-anchor="middle">short-drama-novel-analyze</text>
+  <rect class="node-olive" x="790" y="204" width="230" height="62" rx="9"/>
+  <text class="node-title" x="905" y="230" text-anchor="middle">故事引擎与分集方案</text>
+  <text class="node-note" x="905" y="250" text-anchor="middle">short-drama-develop</text>
+  <path class="arrow" d="M300 235 H422"/>
+  <path class="arrow" d="M660 235 H782"/>
+
+  <rect class="panel" x="40" y="310" width="1040" height="350" rx="12"/>
+  <text class="stage-title" x="62" y="344">2 · 五份 Markdown 契约与 Lookdev 资产</text>
+  <text class="stage-note" x="62" y="366">各文档由对应 Skill 维护；图片提示词与分镜并行产出</text>
+  <rect class="node-paper" x="70" y="392" width="190" height="70" rx="9"/>
+  <text class="node-title" x="165" y="420" text-anchor="middle">剧本.md</text>
+  <text class="node-note" x="165" y="442" text-anchor="middle">short-drama-write</text>
+  <rect class="node-paper" x="330" y="392" width="200" height="70" rx="9"/>
+  <text class="node-title" x="430" y="420" text-anchor="middle">视觉设定.md</text>
+  <text class="node-note" x="430" y="442" text-anchor="middle">short-drama-assets</text>
+  <rect class="node-paper" x="610" y="392" width="210" height="70" rx="9"/>
+  <text class="node-title" x="715" y="420" text-anchor="middle">图片提示词.md</text>
+  <text class="node-note" x="715" y="442" text-anchor="middle">short-drama-image-prompts</text>
+  <rect class="node-paper" x="330" y="500" width="200" height="70" rx="9"/>
+  <text class="node-title" x="430" y="528" text-anchor="middle">分镜.md</text>
+  <text class="node-note" x="430" y="550" text-anchor="middle">short-drama-storyboard</text>
+  <rect class="node-paper" x="610" y="500" width="210" height="70" rx="9"/>
+  <text class="node-title" x="715" y="528" text-anchor="middle">视频提示词.md</text>
+  <text class="node-note" x="715" y="550" text-anchor="middle">short-drama-video-prompts</text>
+  <rect class="node-green" x="850" y="392" width="200" height="70" rx="9"/>
+  <text class="node-title" x="950" y="420" text-anchor="middle">资产渲染调度</text>
+  <text class="node-note" x="950" y="442" text-anchor="middle">角色 / 场景 / 道具</text>
+  <rect class="node-green" x="850" y="500" width="200" height="70" rx="9"/>
+  <text class="node-title" x="950" y="528" text-anchor="middle">assets/lookdev/</text>
+  <text class="node-note" x="950" y="550" text-anchor="middle">定妆图与场景参考</text>
+  <path class="arrow" d="M260 427 H322"/>
+  <path class="arrow" d="M530 427 H602"/>
+  <path class="arrow" d="M430 462 V492"/>
+  <path class="arrow" d="M715 462 V492"/>
+  <path class="arrow" d="M530 535 H602"/>
+  <path d="M820 427 H842" fill="none" stroke="oklch(0.45 0.100 160)" stroke-width="2" marker-end="url(#arrow-green)"/>
+  <path d="M950 462 V492" fill="none" stroke="oklch(0.45 0.100 160)" stroke-width="2" marker-end="url(#arrow-green)"/>
+  <text x="62" y="616" fill="oklch(0.40 0.026 250)" font-size="12">五份正式文档：剧本、视觉设定、图片提示词、分镜、视频提示词。资产参考图存入本地 Lookdev 库。</text>
+
+  <rect class="panel" x="40" y="690" width="1040" height="165" rx="12"/>
+  <text class="stage-title" x="62" y="724">3–4 · 生产门禁</text>
+  <text class="stage-note" x="230" y="724">分镜、视频提示词与 Lookdev 资产汇入生产任务</text>
+  <rect class="node-gate" x="70" y="754" width="235" height="72" rx="9"/>
+  <text class="node-title" x="187" y="782" text-anchor="middle">short-drama-produce</text>
+  <text class="node-note" x="187" y="805" text-anchor="middle">按镜头建立生产任务</text>
+  <rect class="node-gate" x="420" y="754" width="250" height="72" rx="9"/>
+  <text class="node-title" x="545" y="782" text-anchor="middle">prepare · 二值校验</text>
+  <text class="node-note" x="545" y="805" text-anchor="middle">检查任务并预览成本</text>
+  <rect class="node-confirm" x="785" y="754" width="250" height="72" rx="9" stroke-width="1.6"/>
+  <text class="node-title" x="910" y="782" text-anchor="middle">confirm · SHA-256</text>
+  <text class="node-note" x="910" y="805" text-anchor="middle">创作者确认后锁定当前任务</text>
+  <path class="arrow" d="M305 790 H412"/>
+  <path d="M670 790 H777" fill="none" stroke="oklch(0.48 0.130 68)" stroke-width="2" marker-end="url(#arrow-rust)"/>
+  <text x="910" y="842" text-anchor="middle" fill="oklch(0.38 0.090 30)" font-size="11.5">参数变化后，旧确认失效</text>
+
+  <rect class="panel" x="40" y="885" width="1040" height="170" rx="12"/>
+  <text class="stage-title" x="62" y="919">5 · Adapter 跨平台渲染</text>
+  <text class="stage-note" x="340" y="919">通过确认后，按单镜授权启动配置的平台</text>
+  <rect class="node-render" x="62" y="947" width="220" height="74" rx="9"/>
+  <text class="node-title" x="172" y="976" text-anchor="middle">Adapter 路由</text>
+  <text class="node-note" x="172" y="999" text-anchor="middle">读取平台配置</text>
+  <rect class="node-render" x="322" y="947" width="220" height="74" rx="9"/>
+  <text class="node-title" x="432" y="976" text-anchor="middle">文生图 / 首帧绑定</text>
+  <text class="node-note" x="432" y="999" text-anchor="middle">引用 Lookdev 参考图</text>
+  <rect class="node-render" x="582" y="947" width="220" height="74" rx="9"/>
+  <text class="node-title" x="692" y="976" text-anchor="middle">图生视频（I2V）</text>
+  <text class="node-note" x="692" y="999" text-anchor="middle">首帧 + 动态提示词</text>
+  <rect class="node-render" x="842" y="947" width="210" height="74" rx="9"/>
+  <text class="node-title" x="947" y="976" text-anchor="middle">TTS 配音 / 音效</text>
+  <text class="node-note" x="947" y="999" text-anchor="middle">按时间线生成音频</text>
+  <path d="M910 826 V932 H172 V939" fill="none" stroke="oklch(0.45 0.100 110)" stroke-width="2" marker-end="url(#arrow-olive)"/>
+  <path class="arrow" d="M282 984 H314"/>
+  <path class="arrow" d="M542 984 H574"/>
+  <path class="arrow" d="M802 984 H834"/>
+
+  <rect class="panel" x="40" y="1085" width="1040" height="150" rx="12"/>
+  <text class="stage-title" x="62" y="1119">6 · 合成与交付</text>
+  <text class="stage-note" x="250" y="1119">工作流交付素材与生产包，创作者完成最终剪辑</text>
+  <rect class="node-deliver" x="160" y="1143" width="330" height="66" rx="9"/>
+  <text class="node-title" x="325" y="1171" text-anchor="middle">FFmpeg / 剪映草稿</text>
+  <text class="node-note" x="325" y="1193" text-anchor="middle">创作者剪辑与节奏调整</text>
+  <rect class="node-deliver" x="630" y="1143" width="330" height="66" rx="9"/>
+  <text class="node-title" x="795" y="1171" text-anchor="middle">成片与交付包</text>
+  <text class="node-note" x="795" y="1193" text-anchor="middle">素材、项目文件与最终成片</text>
+  <path class="arrow" d="M947 1021 V1070 H325 V1135"/>
+  <path class="arrow" d="M490 1176 H622"/>
+
+  <rect x="40" y="1280" width="1040" height="220" rx="12" fill="oklch(0.985 0.006 110)" stroke="oklch(0.84 0.020 250)" stroke-width="1.5" stroke-dasharray="7 6"/>
+  <text x="62" y="1314" fill="oklch(0.28 0.025 250)" font-size="15" font-weight="700">横切服务</text>
+  <text x="180" y="1314" fill="oklch(0.40 0.026 250)" font-size="12.5">按需介入，不替代阶段 owner</text>
+  <rect x="70" y="1342" width="290" height="112" rx="9" fill="oklch(1.000 0.000 0)" stroke="oklch(0.80 0.020 250)"/>
+  <text class="node-title" x="215" y="1376" text-anchor="middle">short-drama · 总控与路由</text>
+  <text class="node-note" x="215" y="1402" text-anchor="middle">初始化 · 项目配置 · Dashboard</text>
+  <text class="node-note" x="215" y="1426" text-anchor="middle">协调各阶段 Skill</text>
+  <rect x="415" y="1342" width="290" height="112" rx="9" fill="oklch(1.000 0.000 0)" stroke="oklch(0.80 0.020 250)"/>
+  <text class="node-title" x="560" y="1376" text-anchor="middle">short-drama-review · 审查</text>
+  <text class="node-note" x="560" y="1402" text-anchor="middle">按文件、镜头和证据定位问题</text>
+  <text class="node-note" x="560" y="1426" text-anchor="middle">路由回创作或生产阶段</text>
+  <rect x="760" y="1342" width="290" height="112" rx="9" fill="oklch(1.000 0.000 0)" stroke="oklch(0.80 0.020 250)"/>
+  <text class="node-title" x="905" y="1376" text-anchor="middle">google-flow-manga</text>
+  <text class="node-note" x="905" y="1402" text-anchor="middle">导出逐镜检查与执行所需素材</text>
+  <text class="node-note" x="905" y="1426" text-anchor="middle">对接 Google Flow 工作流</text>
+  <text x="62" y="1480" fill="oklch(0.40 0.026 250)" font-size="11.5">实线箭头：主流程　　虚线箭头：横切服务介入　　prepare：校验与预览　　confirm：逐镜授权</text>
 </svg>
