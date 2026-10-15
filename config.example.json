@@ -1,0 +1,32 @@
+{
+  "$comment": [
+    "生产 adapter 的配置脚手架。复制为 config.json 后按需删减，config.json 已被 .gitignore 忽略。",
+    "这个文件必须放在项目目录之外——也就是不能和 short-drama.json 放在同一棵树里，",
+    "否则 production_tool.py 会拒绝加载。",
+    "profile 名（kling-video / gpt-image-2 等）由 job 的 adapter 字段选定，二者必须一致。",
+    "command 是 argv 数组，不是 shell 字符串；凭据一律由 adapter 自己从环境变量读取，",
+    "不要写进这个文件。timeout_seconds 取值 1-3600。"
+  ],
+  "adapters": {
+    "kling-video": {
+      "command": ["python3", "adapters/kling_adapter.py"],
+      "timeout_seconds": 1800
+    },
+    "kling-image": {
+      "command": ["python3", "adapters/kling_adapter.py"],
+      "timeout_seconds": 600
+    },
+    "seedance-video": {
+      "command": ["python3", "skills/short-drama-produce/scripts/provider_adapters.py", "seedance"],
+      "timeout_seconds": 1800
+    },
+    "gpt-image-2": {
+      "command": ["python3", "skills/short-drama-produce/scripts/provider_adapters.py", "gpt-image-2"],
+      "timeout_seconds": 600
+    },
+    "minimax-music": {
+      "command": ["python3", "skills/short-drama-produce/scripts/provider_adapters.py", "minimax-music"],
+      "timeout_seconds": 600
+    }
+  }
+}

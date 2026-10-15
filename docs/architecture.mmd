@@ -1,0 +1,48 @@
+%% AIGC 漫剧 / 短剧创作工作流 · 分层架构
+%% 可编辑源。改动后需重新导出 docs/architecture.svg 覆盖旧图。
+%% 分层职责的逐层说明见 architecture.md。
+
+graph TD
+    subgraph 输入层
+        I1[长篇小说 / 连载网文 / 故事想法]
+        I2[输入/ · 只读]
+    end
+
+    subgraph 开发层
+        D1[short-drama-novel-analyze<br/>6 阶段管道]
+        D2[short-drama-develop<br/>创作简报 · 故事引擎 · 分集地图]
+        D1 --> D2
+    end
+
+    subgraph 创作层
+        W1[剧本.md]
+        W2[视觉设定.md]
+        W3[图片提示词.md]
+        W4[分镜.md]
+        W5[视频提示词.md]
+        W1 --> W2 --> W3 --> W4 --> W5
+    end
+
+    subgraph 生产层
+        P1[prepare<br/>门禁校验 · 预览与预算]
+        P2[confirm<br/>人类确认 · SHA-256 指纹]
+        P3[run<br/>指纹比对 · 调度 adapter]
+        P4[Adapter 路由<br/>参数映射 · 重试 · 下载]
+        P5[媒体渲染<br/>图 · 视频 · 配音 · 音乐]
+        P1 --> P2 --> P3 --> P4 --> P5
+    end
+
+    subgraph 产出层
+        O1[成片与交付包<br/>剧集/EP/制作成果/]
+        O2[Flow 生产包<br/>flow/EP/ · 连续性台账 · 逐镜卡]
+    end
+
+    I1 --> D1
+    D2 --> W1
+    W5 --> P1
+    P5 --> O1
+    P5 --> O2
+
+    R1[short-drama<br/>总控 · 路由 · Dashboard] -.-> W1
+    R2[short-drama-review<br/>独立审查 · 证据链定位] -.-> W1
+    R2 -.-> P1

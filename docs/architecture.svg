@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 938" width="1240" height="938" role="img" aria-label="AIGC 漫剧 / 短剧创作工作流分层架构图">
+<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#A8B2BE"/></marker></defs>
+<rect x="0.0" y="0.0" width="1240.0" height="938.0" rx="0" fill="#FFFFFF"/>
+<text x="28.0" y="46.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="24" fill="#14181D" text-anchor="start" font-weight="700">AIGC 漫剧 / 短剧创作工作流 · 分层架构</text>
+<text x="28.0" y="74.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#5C6673" text-anchor="start">11 个职责隔离的 Skill。用显式状态契约压住跨镜头一致性漂移，用文件系统承载唯一真相，用二值化门禁与 SHA-256 指纹锁住付费生成的成本上限。</text>
+<rect x="128.0" y="100.0" width="1084.0" height="110.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
+<text x="28.0" y="140.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#7A8794" text-anchor="start" font-weight="700">输入层</text>
+<text x="28.0" y="159.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#6B7683" text-anchor="start">不可变素材</text>
+<rect x="162.0" y="112.0" width="494.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 172.0 112.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#7A8794"/>
+<text x="178.0" y="139.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">长篇小说 / 连载网文 / 故事想法</text>
+<text x="178.0" y="159.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">创作者提供的原始素材</text>
+<rect x="704.0" y="112.0" width="494.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 714.0 112.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#7A8794"/>
+<text x="720.0" y="139.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">输入/ · 只读</text>
+<text x="720.0" y="159.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">原著全文与创作者决策记录</text>
+<text x="142.0" y="196.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#7A8593" text-anchor="start">创作者的原始素材放 输入/，本层只读，不改写素材本身。</text>
+<rect x="128.0" y="232.0" width="1084.0" height="110.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
+<text x="28.0" y="272.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#5B7CFA" text-anchor="start" font-weight="700">开发层</text>
+<text x="28.0" y="291.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#6B7683" text-anchor="start">分析 · 立契</text>
+<rect x="162.0" y="244.0" width="494.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 172.0 244.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#5B7CFA"/>
+<text x="178.0" y="271.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">short-drama-novel-analyze</text>
+<text x="178.0" y="291.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">6 阶段管道：索引 → 逐章提取 → 单元聚合 → 改编价值</text>
+<line x1="662.0" y1="275.0" x2="700.0" y2="275.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<rect x="704.0" y="244.0" width="494.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 714.0 244.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#5B7CFA"/>
+<text x="720.0" y="271.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">short-drama-develop</text>
+<text x="720.0" y="291.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">创作简报 · 故事引擎 · 分集地图 · 改编边界</text>
+<text x="142.0" y="328.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#7A8593" text-anchor="start">先把长材料拆成可引用、可反驳、可接着用的分析层，再立下改编契约；索引是唯一的切片真源。</text>
+<rect x="128.0" y="364.0" width="1084.0" height="110.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
+<text x="28.0" y="404.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#E0952F" text-anchor="start" font-weight="700">创作层</text>
+<text x="28.0" y="423.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#6B7683" text-anchor="start">五份文档</text>
+<rect x="162.0" y="376.0" width="189.6" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 172.0 376.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#E0952F"/>
+<text x="178.0" y="403.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">剧本.md</text>
+<text x="178.0" y="423.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">short-drama-write</text>
+<line x1="357.6" y1="407.0" x2="369.6" y2="407.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<rect x="373.6" y="376.0" width="189.6" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 383.6 376.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#E0952F"/>
+<text x="389.6" y="403.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">视觉设定.md</text>
+<text x="389.6" y="423.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">short-drama-assets</text>
+<line x1="569.2" y1="407.0" x2="581.2" y2="407.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<rect x="585.2" y="376.0" width="189.6" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 595.2 376.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#E0952F"/>
+<text x="601.2" y="403.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">图片提示词.md</text>
+<text x="601.2" y="423.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">short-drama-image-prompts</text>
+<line x1="780.8" y1="407.0" x2="792.8" y2="407.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<rect x="796.8" y="376.0" width="189.6" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 806.8 376.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#E0952F"/>
+<text x="812.8" y="403.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">分镜.md</text>
+<text x="812.8" y="423.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">short-drama-storyboard</text>
+<line x1="992.4" y1="407.0" x2="1004.4" y2="407.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<rect x="1008.4" y="376.0" width="189.6" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 1018.4 376.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#E0952F"/>
+<text x="1024.4" y="403.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">视频提示词.md</text>
+<text x="1024.4" y="423.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">short-drama-video-prompts</text>
+<text x="142.0" y="460.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#7A8593" text-anchor="start">每集只维护这 5 份 Markdown，一份事实只有一个 owner；IMG-* 是提示词条目的 ID，不代表图片已生成。</text>
+<rect x="128.0" y="496.0" width="1084.0" height="110.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
+<text x="28.0" y="536.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#D9534F" text-anchor="start" font-weight="700">生产层</text>
+<text x="28.0" y="555.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#6B7683" text-anchor="start">闸门 · 渲染</text>
+<rect x="162.0" y="508.0" width="189.6" height="62.0" rx="10" fill="#FFF6F5" stroke="#EFC9C6" stroke-width="1"/>
+<path d="M 172.0 508.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#D9534F"/>
+<text x="178.0" y="535.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">prepare</text>
+<text x="178.0" y="555.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">门禁校验 · 预览与预算</text>
+<line x1="357.6" y1="539.0" x2="369.6" y2="539.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<rect x="373.6" y="508.0" width="189.6" height="62.0" rx="10" fill="#FFF6F5" stroke="#EFC9C6" stroke-width="1"/>
+<path d="M 383.6 508.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#D9534F"/>
+<text x="389.6" y="535.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">confirm</text>
+<text x="389.6" y="555.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">人类确认 · SHA-256 指纹</text>
+<line x1="569.2" y1="539.0" x2="581.2" y2="539.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<rect x="585.2" y="508.0" width="189.6" height="62.0" rx="10" fill="#FFF6F5" stroke="#EFC9C6" stroke-width="1"/>
+<path d="M 595.2 508.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#D9534F"/>
+<text x="601.2" y="535.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">run</text>
+<text x="601.2" y="555.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">指纹比对 · 调度 adapter</text>
+<line x1="780.8" y1="539.0" x2="792.8" y2="539.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<rect x="796.8" y="508.0" width="189.6" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 806.8 508.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#D9534F"/>
+<text x="812.8" y="535.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">Adapter 路由</text>
+<text x="812.8" y="555.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">参数映射 · 重试 · 下载</text>
+<line x1="992.4" y1="539.0" x2="1004.4" y2="539.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<rect x="1008.4" y="508.0" width="189.6" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 1018.4 508.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#D9534F"/>
+<text x="1024.4" y="535.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">媒体渲染</text>
+<text x="1024.4" y="555.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#5C6673" text-anchor="start">图 · 视频 · 配音 · 音乐</text>
+<text x="142.0" y="592.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#7A8593" text-anchor="start">四步不可合并；job、prompt、参数或输出路径任一变化，旧确认立即失效。adapter 由 config.json 的 adapters 选定，凭据只从环境变量读取。</text>
+<rect x="128.0" y="628.0" width="1084.0" height="110.0" rx="14" fill="#F8F9FB" stroke="#E4E8EE" stroke-width="1"/>
+<text x="28.0" y="668.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#2F9E77" text-anchor="start" font-weight="700">产出层</text>
+<text x="28.0" y="687.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#6B7683" text-anchor="start">成片 · 交付</text>
+<rect x="162.0" y="640.0" width="494.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 172.0 640.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#2F9E77"/>
+<text x="178.0" y="667.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">成片与交付包</text>
+<text x="178.0" y="687.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">剧集/&lt;EP&gt;/制作成果/ · 归档排除私有输入与凭据</text>
+<rect x="704.0" y="640.0" width="494.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D6DCE4" stroke-width="1"/>
+<path d="M 714.0 640.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#2F9E77"/>
+<text x="720.0" y="667.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">Flow 生产包</text>
+<text x="720.0" y="687.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">flow/&lt;EP&gt;/ · 连续性台账 · 逐镜可执行卡</text>
+<text x="142.0" y="724.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#7A8593" text-anchor="start">两个出口相互独立。生产成功只证明执行与保管，不证明身份、表演、混音与剪辑质量。</text>
+<line x1="670.0" y1="213.0" x2="670.0" y2="229.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<line x1="670.0" y1="345.0" x2="670.0" y2="361.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<line x1="670.0" y1="477.0" x2="670.0" y2="493.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<line x1="670.0" y1="609.0" x2="670.0" y2="625.0" stroke="#A8B2BE" stroke-width="1.6" marker-end="url(#head)"/>
+<line x1="118" y1="155.0" x2="118" y2="823.0" stroke="#C3CBD4" stroke-width="1.6" stroke-dasharray="5 4"/>
+<line x1="118" y1="155.0" x2="126" y2="155.0" stroke="#C3CBD4" stroke-width="1.6" stroke-dasharray="3 3"/>
+<line x1="118" y1="287.0" x2="126" y2="287.0" stroke="#C3CBD4" stroke-width="1.6" stroke-dasharray="3 3"/>
+<line x1="118" y1="419.0" x2="126" y2="419.0" stroke="#C3CBD4" stroke-width="1.6" stroke-dasharray="3 3"/>
+<line x1="118" y1="551.0" x2="126" y2="551.0" stroke="#C3CBD4" stroke-width="1.6" stroke-dasharray="3 3"/>
+<line x1="118" y1="683.0" x2="126" y2="683.0" stroke="#C3CBD4" stroke-width="1.6" stroke-dasharray="3 3"/>
+<rect x="28.0" y="768.0" width="1184.0" height="110.0" rx="14" fill="#FAFBFC" stroke="#D5DBE2" stroke-width="1" stroke-dasharray="6 5"/>
+<text x="28.0" y="808.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#7B8794" text-anchor="start" font-weight="700">横切能力</text>
+<text x="28.0" y="827.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="10.5" fill="#6B7683" text-anchor="start">任意阶段</text>
+<rect x="130.0" y="780.0" width="496.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D5DBE2" stroke-width="1"/>
+<path d="M 140.0 780.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#7B8794"/>
+<text x="146.0" y="807.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">short-drama</text>
+<text x="146.0" y="827.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">总控 · 项目初始化 · 跨阶段路由 · Dashboard · 制作形态决策</text>
+<rect x="674.0" y="780.0" width="496.0" height="62.0" rx="10" fill="#FFFFFF" stroke="#D5DBE2" stroke-width="1"/>
+<path d="M 684.0 780.0 h -4 a 4 4 0 0 0 -4 4 v 54 a 4 4 0 0 0 4 4 h 4 z" fill="#7B8794"/>
+<text x="690.0" y="807.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="13" fill="#14181D" text-anchor="start" font-weight="600">short-drama-review</text>
+<text x="690.0" y="827.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11.5" fill="#5C6673" text-anchor="start">独立审查 · 证据链定位 · 带规则等级的报告 · 10 种审查范围</text>
+<text x="130.0" y="864.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#7A8593" text-anchor="start">两个横切能力可介入任意阶段，但只写自己的产物，不改写其他 owner 的源文件。</text>
+<text x="28.0" y="914.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#8A94A6" text-anchor="start">实线箭头 = 主链路数据流</text>
+<text x="200.0" y="914.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#8A94A6" text-anchor="start">虚线主轴 = 横切能力介入范围</text>
+<text x="400.0" y="914.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif" font-size="11" fill="#8A94A6" text-anchor="start">红框 = 需要人类确认的付费闸门</text>
+</svg>
