@@ -11,6 +11,9 @@
   "prompt": "the exact copyable prompt from MOTION-EP001-001",
   "source": "episodes/EP001/视频提示词.md",
   "source_entry": "MOTION-EP001-001",
+  "start_frame_source": "ASSET",
+  "parent_shot_id": null,
+  "head_frame": null,
   "reference_bindings": [
     {
       "slot_id": "REF-HERO",
@@ -39,6 +42,9 @@
   provide the matching selector; an arbitrary Markdown file cannot impersonate a
   creator source. `prepare` selects that section and requires `prompt` to exactly
   equal its copyable prompt after Markdown quote markers are removed.
+- `start_frame_source`: `ASSET` for a static Lookdev start frame or `CHAIN_PREV` for a parent tail frame.
+- `parent_shot_id`: required for `CHAIN_PREV`; absent for `ASSET`.
+- `head_frame`: scheduler-injected project-relative PNG/JPEG/WebP path for a completed parent tail frame. It is included in the confirmed input digest and passed to the adapter as an additional reference.
 - `reference_bindings`: zero to sixteen ordered semantic bindings. Every entry has
   exactly `slot_id`, contiguous `order`, project-relative `path`, Chinese `label`,
   non-empty `role`, and non-empty `may_control` / `must_not_control` lists. When

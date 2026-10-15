@@ -13,6 +13,8 @@
 | 字段 | 内容 |
 |---|---|
 | 来源 | 剧本场景 ID |
+| `start_frame_source` | 首帧来源，只能是 `ASSET` 或 `CHAIN_PREV` |
+| `parent_shot_id` | 当首帧来源为 `CHAIN_PREV` 时填写依赖的前置镜头 ID；`ASSET` 时写「无」 |
 | 时长 | 该镜秒数 |
 | 目的 | 这一镜让观众看到什么，以及为什么它是独立一镜 |
 | 关联资产 | `[CHAR-...]` / `[LOC-...]` / `[PROP-...]` 及其中文名 |
@@ -57,6 +59,7 @@
 | SHT-19 | reviewed_invariant | When a coverage audition is used, its approaches genuinely differ by knowledge timing, alignment, performance space, strongest image, landing, losses, or production fit; it uses no fixed option, grid, framing, or shot-count formula, and the selected approach is stated before formal shots are written. |
 | SHT-20 | reviewed_invariant | Shot revision identity follows directing responsibility rather than array position or text similarity: reorder preserves IDs, insertion creates one, split/merge retires replaced IDs and creates successors, and active coverage plus downstream refs are reconciled before delivery. |
 | SHT-21 | reviewed_invariant | A keyframe's copyable text carries only what will be visible; IDs, workflow notes, file paths and craft commentary stay outside the prompt. Two prompts that differ only by identifiers are a template, not two frames. |
+| SHT-22 | structural_invariant | Every shot declares `start_frame_source` as `ASSET` or `CHAIN_PREV`; a `CHAIN_PREV` shot declares an existing `parent_shot_id`. |
 
 ### `CON`
 
@@ -68,6 +71,7 @@
 | CON-04 | structural_invariant | A continuity change states before, after, cause/source scene, effective range, and affected visible IDs. |
 | CON-05 | taste_option | Declared montage, ellipsis, dream, or subjective imagery may intentionally break ordinary continuity. |
 | CON-06 | structural_invariant | A continuity change names every existing downstream document it affects; future work is described, not pre-created. |
+| CON-07 | structural_invariant | The `CHAIN_PREV` dependency graph is acyclic; a child waits for its declared parent tail frame and an `ASSET` shot has no parent dependency. |
 
 规则分级由高到低：`structural_invariant`（结构缺陷，阻断）、
 `reviewed_invariant`（需证据判断）、`craft_default`（常用做法，可覆盖）、

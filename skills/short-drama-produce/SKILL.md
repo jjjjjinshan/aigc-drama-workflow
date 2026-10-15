@@ -6,7 +6,9 @@ license: MIT
 
 # 确认后生产
 
-本技能只负责把已经写好的生产规格安全送到运行环境配置的 adapter。图片提示词仍归
+本技能只负责把已经写好的生产规格安全送到运行环境配置的 adapter。v1.1 增加依赖感知型 DAG 调度：`ASSET` 镜头进入并发任务池，`CHAIN_PREV` 镜头等待 `parent_shot_id` 的视频完成；父镜头完成后由 FFmpeg 提取尾帧，作为子镜头的 `head_frame` 注入生产 job。调度器只负责顺序和唤醒，不绕过 `prepare -> confirm -> run` 门禁。
+
+图片提示词仍归
 `$short-drama-image-prompts`，视频提示词归 `$short-drama-video-prompts`，台词与录音表归
 `$short-drama-write`，声音身份归 `$short-drama-assets`。
 
@@ -68,6 +70,7 @@ python3 <本技能目录>/scripts/production_tool.py run <project> --job-id <id>
 python3 <本技能目录>/scripts/production_tool.py status <project> --job-id <id>
 python3 <本技能目录>/scripts/production_tool.py rerun <project> --shot <SHOT-ID>
 python3 <本技能目录>/scripts/production_tool.py audit <project>
+python3 <本技能目录>/scripts/dag_scheduler.py <project>/episodes/<EP>/分镜.md
 ```
 
 `prepare` 只验证并预览，不生产。`confirm` 只保存与当前 job 指纹绑定的一次性确认。

@@ -66,6 +66,66 @@ def _plain(value: str) -> str:
     return value.strip().rstrip("。")
 
 
+def _check_shot_dependencies(
+    shots: dict[str, str], errors: list[str]
+) -> None:
+    """Validate the v1.1 start-frame dependency contract and DAG shape."""
+    dependencies: dict[str, str] = {}
+    allowed_sources = {"ASSET", "CHAIN_PREV"}
+    for shot_id, section in shots.items():
+        fields = _fields(section, owner=shot_id, errors=errors)
+        source = _plain(fields.get("start_frame_source", ""))
+        parent = _plain(fields.get("parent_shot_id", ""))
+        if source not in allowed_sources:
+            errors.append(
+                f"CHECK_011_INVALID_START_FRAME_SOURCE: {shot_id}: "
+                "start_frame_source 必须是 ASSET 或 CHAIN_PREV"
+            )
+            continue
+        if source == "ASSET":
+            if parent not in {"", "无", "null", "None"}:
+                errors.append(
+                    f"CHECK_012_INVALID_PARENT_SHOT: {shot_id}: "
+                    "ASSET 镜头不得声明 parent_shot_id"
+                )
+            continue
+        if not parent or parent in {"无", "null", "None"} or parent not in shots:
+            errors.append(
+                f"CHECK_012_INVALID_PARENT_SHOT: {shot_id}: "
+                f"CHAIN_PREV 的 parent_shot_id 不存在: {parent or '未填写'}"
+            )
+            continue
+        if parent == shot_id:
+            errors.append(
+                f"CHECK_013_CIRCULAR_DEPENDENCY: {shot_id}: 镜头不能依赖自身"
+            )
+            continue
+        dependencies[shot_id] = parent
+
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(shot_id: str, trail: list[str]) -> None:
+        if shot_id in visiting:
+            cycle_start = trail.index(shot_id) if shot_id in trail else 0
+            cycle = trail[cycle_start:] + [shot_id]
+            errors.append(
+                "CHECK_013_CIRCULAR_DEPENDENCY: " + " -> ".join(cycle)
+            )
+            return
+        if shot_id in visited:
+            return
+        visiting.add(shot_id)
+        parent = dependencies.get(shot_id)
+        if parent is not None:
+            visit(parent, trail + [shot_id])
+        visiting.remove(shot_id)
+        visited.add(shot_id)
+
+    for shot_id in dependencies:
+        visit(shot_id, [])
+
+
 def _contains_ref_token(value: str) -> bool:
     return "ref-" in value.casefold()
 
@@ -241,6 +301,8 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
         errors.append("分镜.md: 没有 SHOT 条目")
     if not motions:
         errors.append("视频提示词.md: 没有 MOTION 条目")
+    if shots:
+        _check_shot_dependencies(shots, errors)
 
     motion_by_shot: dict[str, tuple[str, str, Optional[str]]] = {}
     for motion_id, body in motions.items():

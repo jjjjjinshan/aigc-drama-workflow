@@ -9,9 +9,13 @@ license: MIT
 把剧本和视觉事实转成有镜头职责、空间连续性和可冻结起点的 `episodes/<EP>/分镜.md`。
 每镜使用二级标题 `## SHOT-...`，同镜下用 `### 冻结关键帧提示词` 写起始帧正文。
 
-每镜按固定字段写，其中 `起始状态 (start_state)`、`终止状态 (end_state)`、`状态变化 (continuity_delta)`、
-`变化解释 (why_changed)` 是显式状态契约的四要素，缺一按结构缺陷处理；字段全表见
+每镜按固定字段写，其中 `start_frame_source`、`parent_shot_id`、`起始状态 (start_state)`、`终止状态 (end_state)`、
+`状态变化 (continuity_delta)`、`变化解释 (why_changed)` 是 v1.1 的首帧与显式状态契约字段，缺一按结构缺陷处理；字段全表见
 [阶段契约](references/stage-contract.md)。
+
+`start_frame_source` 只能填写 `ASSET` 或 `CHAIN_PREV`。`ASSET` 使用 Lookdev 资产图作为首帧，`parent_shot_id` 写「无」；
+`CHAIN_PREV` 表示本镜首帧来自前置镜头的渲染尾帧，必须填写真实存在的 `parent_shot_id`。连续动作、同场景微动作延续优先使用
+`CHAIN_PREV`；新场景、视角切换和不依赖前镜状态的镜头使用 `ASSET`。
 
 ## Quick Start
 
