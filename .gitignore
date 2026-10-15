@@ -5,7 +5,7 @@ __pycache__/
 *.so
 .Python
 build/
-dist/
+dist/*
 *.egg-info/
 .venv/
 venv/
@@ -40,13 +40,19 @@ _work/
 # ── 渲染产物与本地资产库 ──────────────────────────────
 # 一次跑图跑视频就可能产生几 GB 二进制，全部留在本地。
 # 注意：这里只写锚定到仓库根的路径，避免误伤 skills/*/assets/ 这类需要入库的模板。
-/dist/
+/dist/*
+!/dist/README.md
 /production/
 /输入/
 /input/
 /交付/
 
 # 本地 Lookdev 资产库：只保留说明文件，渲染出的定妆照 / 概念图 / 道具卡不入库
+/assets/lookdev/**/*.png
+/assets/lookdev/**/*.jpg
+/assets/lookdev/**/*.jpeg
+/assets/lookdev/**/*.webp
+/assets/lookdev/**/*.psd
 /assets/lookdev/*.png
 /assets/lookdev/*.jpg
 /assets/lookdev/*.jpeg

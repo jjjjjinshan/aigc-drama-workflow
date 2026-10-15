@@ -267,6 +267,14 @@ def main() -> int:
     parser.add_argument("package", type=Path, help="Path to flow-package.json")
     parser.add_argument("--output", type=Path, help="Optional JSON report path")
     parser.add_argument("--skip-path-checks", action="store_true", help="Skip local asset existence checks")
+    parser.add_argument(
+        "--allow-unverified",
+        action="store_true",
+        help=(
+            "打洞：结构缺陷降级为警告并放行，退出码 0。"
+            "只在创作者已明确接受该风险时使用；正常流程不要带这个开关。"
+        ),
+    )
     args = parser.parse_args()
 
     try:
@@ -287,6 +295,12 @@ def main() -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered, encoding="utf-8")
     print(f"{report['status'].upper()}: {report['metrics']['errors']} error(s), {report['metrics']['warnings']} warning(s), {report['metrics']['shots']} shot(s)")
+    if report["errors"] and args.allow_unverified:
+        print(
+            f"OK: 0 error(s), {report['metrics']['errors']} warning(s) — UNVERIFIED，"
+            "结构缺陷未修复，进入生产前需要创作者明确接受"
+        )
+        return 0
     return 1 if report["errors"] else 0
 
 

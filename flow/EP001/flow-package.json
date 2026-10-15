@@ -5,11 +5,11 @@
   "package_status": "draft",
   "aspect_ratio": "9:16",
   "source_documents": [
-    "../../EP001/剧本.md",
-    "../../EP001/视觉设定.md",
-    "../../EP001/分镜.md",
-    "../../EP001/图片提示词.md",
-    "../../EP001/视频提示词.md"
+    "../../episodes/EP001/剧本.md",
+    "../../episodes/EP001/视觉设定.md",
+    "../../episodes/EP001/分镜.md",
+    "../../episodes/EP001/图片提示词.md",
+    "../../episodes/EP001/视频提示词.md"
   ],
   "style_lock": {
     "summary": "竖屏9:16半写实国风条漫漫剧；清晰轮廓线、有限色层、现实材质保留少量纹理；冷白顶灯、米白地砖、深绿长椅构成低饱和冷调；无霓虹、无法术光效、无雾。",

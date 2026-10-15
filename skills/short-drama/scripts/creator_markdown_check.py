@@ -317,8 +317,25 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("episode", type=Path, help="包含五份 Markdown 的剧集目录")
     parser.add_argument("--project-root", type=Path, help="用于解析 REF 项目相对路径")
+    parser.add_argument(
+        "--allow-unverified",
+        action="store_true",
+        help=(
+            "打洞：结构缺陷降级为警告并放行，退出码 0。"
+            "只在创作者已明确接受该风险时使用；正常流程不要带这个开关，"
+            "因为它让 fail-closed 门禁不再阻断。"
+        ),
+    )
     args = parser.parse_args()
     errors = validate_episode(args.episode, args.project_root)
+    if errors and args.allow_unverified:
+        for error in errors:
+            print(f"WARN: {error}")
+        print(
+            f"OK: 0 error(s), {len(errors)} warning(s) — UNVERIFIED，"
+            "结构缺陷未修复，进入生产前需要创作者明确接受"
+        )
+        return 0
     if errors:
         for error in errors:
             print(f"ERROR: {error}")

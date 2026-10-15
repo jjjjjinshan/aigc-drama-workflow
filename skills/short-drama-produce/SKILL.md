@@ -66,6 +66,7 @@ python3 <本技能目录>/scripts/production_tool.py prepare <project> --job <jo
 python3 <本技能目录>/scripts/production_tool.py confirm <project> --job-id <id> --confirmation "CONFIRM <id> <code>"
 python3 <本技能目录>/scripts/production_tool.py run <project> --job-id <id> --adapter-config <outside-project-config.json>
 python3 <本技能目录>/scripts/production_tool.py status <project> --job-id <id>
+python3 <本技能目录>/scripts/production_tool.py rerun <project> --shot <SHOT-ID>
 python3 <本技能目录>/scripts/production_tool.py audit <project>
 ```
 
@@ -73,6 +74,10 @@ python3 <本技能目录>/scripts/production_tool.py audit <project>
 `run` 才启动 adapter。`audit` 只对账本地任务历史、失败后恢复、重复内容尝试和当前输出字节，
 不会调用供应商，也不把技术成功、文件存在或哈希一致写成媒体质量结论。同一 job 存在未决
 `running` attempt 时禁止重新 prepare、confirm 或 run；先等待完成或排查遗留 attempt。
+
+`rerun` 是单镜粒度授权的落点：它只重新 `prepare` 引用了指定镜头的 job，刷新该镜头的指纹并
+作废它的旧确认，其他镜头已经确认过的状态不受影响。`--shot` 接受完整 ID（`SHOT-EP001-003`），
+也接受裸编号（`003`）。刷新后仍需重新 `confirm` 才会产生费用。
 
 ## 输入选择
 

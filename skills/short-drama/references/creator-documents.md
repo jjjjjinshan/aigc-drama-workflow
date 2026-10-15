@@ -120,3 +120,6 @@
 - 引用使用文档里看得见的场景/镜头/提示词 ID；不写文件哈希和内部路径。
 - 用户没要求的字段不为“完整”而补造。
 - 完成或修订五份文档后运行 `python3 skills/short-drama/scripts/creator_markdown_check.py episodes/<EP> --project-root .`，校验可执行的跨文档结构；内容质量仍由创作者审查。
+- 该脚本默认 fail-closed：结构缺陷直接阻断并返回非零退出码。加 `--allow-unverified` 可以把缺陷降级为
+  警告并放行，输出 `UNVERIFIED`；这是给创作者已明确接受风险的场景留的打洞，正常流程不要带这个开关，
+  `google-flow-manga` 的 `validate_flow_package.py` 有同名开关。

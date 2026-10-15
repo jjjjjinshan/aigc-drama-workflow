@@ -1,4 +1,4 @@
-# 示例项目：末班
+# 示例走查：末班
 
 这是一个**完全原创**的最小示例，用来演示五份 creator-first 文档如何互相咬合。
 
@@ -12,15 +12,18 @@
 
 ## 文件结构
 
+仓库根同时是一个**可直接运行的项目**：示例数据就在项目布局里，校验命令不需要额外路径参数。
+
 ```
-minimal-drama/
+aigc-drama-workflow/
 ├── short-drama.json                    ← 项目标记文件，也是项目级配置
-├── EP001/
+├── episodes/EP001/
 │   ├── 剧本.md          ← short-drama-write
 │   ├── 视觉设定.md      ← short-drama-assets
 │   ├── 图片提示词.md    ← short-drama-image-prompts
 │   ├── 分镜.md          ← short-drama-storyboard
 │   └── 视频提示词.md    ← short-drama-video-prompts
+├── assets/lookdev/                     ← 本地 Lookdev 资产库（空目录骨架）
 └── flow/EP001/
     ├── flow-package.json      ← google-flow-manga
     ├── continuity-ledger.json
@@ -28,10 +31,7 @@ minimal-drama/
     └── review/
 ```
 
-> 这个示例是**最小化**的：剧集目录 `EP001/` 直接放在项目根下，省掉 `episodes/` 这一层。
-> 正式项目按 `episodes/<EP>/` 组织（旧名 `剧集/<EP>/` 仍然可读）。
->
-> `short-drama.json` 让这个示例成为一个**自洽的项目**：生产工具靠它定位项目根。
+> `short-drama.json` 让仓库根成为一个**自洽的项目**：生产工具靠它定位项目根。
 > 少了它，工具会沿目录树向上找，可能落到外层无关的项目上。
 
 > 本示例**不附带图片**。`flow-package.json` 里的资产只按 `flow_asset_name` 登记（参考图留在 Flow 侧），
@@ -74,20 +74,20 @@ minimal-drama/
 
 ## 校验
 
-本示例的文档结构可以用 Skill 自带的校验器检查。**在 `examples/minimal-drama/` 目录下执行**：
+本示例的文档结构可以用 Skill 自带的校验器检查。**在仓库根目录执行**：
 
 ```bash
 # 跨文档结构与 ID 一致性
-python ../../skills/short-drama/scripts/creator_markdown_check.py EP001 --project-root .
+python skills/short-drama/scripts/creator_markdown_check.py episodes/EP001
 # 预期输出：OK: 0 error(s), 0 warning(s)
 
 # Flow 生产包结构与连续性
-python ../../skills/google-flow-manga/scripts/validate_flow_package.py flow/EP001/flow-package.json
+python skills/google-flow-manga/scripts/validate_flow_package.py flow/EP001/flow-package.json
 # 预期输出：OK: 0 error(s), 0 warning(s), 3 shot(s)
 ```
 
 > 校验脚本要求 **Python 3.13+**（`flow-package` 校验依赖 3.13 的 `Path.is_dir(follow_symlinks=)`）。
-> Windows 上若没有 `python3`，用 `py -3` 或把 `python` 指向 3.13 解释器，详见 [`../../docs/installation.md`](../../docs/installation.md)。
+> Windows 上若没有 `python3`，用 `py -3` 或把 `python` 指向 3.13 解释器，详见 [installation.md](installation.md)。
 
 第二条命令会把结果写入 `flow/EP001/review/flow-readiness-report.json`。仓库里附带的那份是**样例**，
 其中 `package` 字段被改成了相对路径（校验器实际写出的是绝对路径），其余字段与校验器输出一致。

@@ -1971,6 +1971,76 @@ def audit_project(root: Path) -> dict[str, Any]:
     }
 
 
+def _shot_reference_match(document: Mapping[str, Any], shot: str) -> bool:
+    references = [str(document.get("job_id") or ""), str(document.get("source_entry") or "")]
+    outputs = document.get("outputs")
+    if isinstance(outputs, list):
+        references.extend(str(item) for item in outputs)
+    if any(shot in reference for reference in references):
+        return True
+    if re.fullmatch(r"\d{1,4}", shot):
+        pattern = re.compile(rf"[-_]0*{int(shot)}(?:\D|$)")
+        return any(pattern.search(reference) for reference in references)
+    return False
+
+
+def _stored_jobs(root: Path) -> list[Mapping[str, Any]]:
+    directory = root / PRODUCTION_ROOT / "jobs"
+    if not directory.is_dir():
+        return []
+    result: list[Mapping[str, Any]] = []
+    for path in sorted(directory.glob("*.json")):
+        try:
+            document = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            continue
+        if isinstance(document, Mapping) and isinstance(document.get("job_id"), str):
+            result.append(document)
+    return result
+
+
+def rerun_shot(root: Path, *, shot: str) -> dict[str, Any]:
+    """只重新 prepare 引用了 ``shot`` 的 job，不碰其他镜头。
+
+    这是单镜粒度授权的落点：重跑第 3 镜只刷新 Shot 003 的指纹与预览，其他镜头已经确认过的
+    状态与指纹不受影响。刷新会同时作废该 job 的旧确认，付费前仍需重新确认一次。
+    """
+    root = find_project(root)
+    if not shot.strip():
+        raise ValueError("--shot must be a non-empty shot identifier")
+    stored_jobs = _stored_jobs(root)
+    matches = [job for job in stored_jobs if _shot_reference_match(job, shot)]
+    if not matches:
+        available = sorted(
+            {
+                token
+                for job in stored_jobs
+                for token in re.findall(
+                    r"SHOT-[A-Z0-9-]+",
+                    " ".join(
+                        [str(job.get("job_id") or "")]
+                        + [str(item) for item in (job.get("outputs") or [])]
+                    ),
+                )
+            }
+        )
+        detail = "、".join(available) if available else "该项目还没有已 prepare 的 job"
+        raise ValueError(f"没有 job 引用 {shot}；可用的镜头：{detail}")
+    results: list[dict[str, Any]] = []
+    for stored in matches:
+        raw = {key: stored[key] for key in ALLOWED_JOB_KEYS if key in stored}
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".json", encoding="utf-8", delete=False
+        ) as handle:
+            json.dump(raw, handle, ensure_ascii=False)
+            temporary = Path(handle.name)
+        try:
+            results.append(prepare_job(root, temporary))
+        finally:
+            temporary.unlink(missing_ok=True)
+    return {"shot": shot, "count": len(results), "jobs": results}
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run confirmed short-drama media jobs.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -1988,6 +2058,16 @@ def build_parser() -> argparse.ArgumentParser:
     status = commands.add_parser("status", help="Show one media job state.")
     status.add_argument("project")
     status.add_argument("--job-id", required=True)
+    rerun = commands.add_parser(
+        "rerun",
+        help="Re-prepare only the jobs that reference one shot (single-shot re-authorization).",
+    )
+    rerun.add_argument("project")
+    rerun.add_argument(
+        "--shot",
+        required=True,
+        help="Shot identifier, e.g. SHOT-EP001-003；也接受裸编号 003",
+    )
     audit = commands.add_parser(
         "audit", help="Reconcile attempt history and current output bytes."
     )
@@ -2012,6 +2092,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         elif args.command == "status":
             result = job_status(Path(args.project), job_id=args.job_id)
+        elif args.command == "rerun":
+            result = rerun_shot(Path(args.project), shot=args.shot)
         else:
             result = audit_project(Path(args.project))
         print(json.dumps(result, ensure_ascii=True, sort_keys=True))
