@@ -5,18 +5,24 @@ from __future__ import annotations
 
 import json
 import os
-import tempfile
 import sys
+import tempfile
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
 
 from project_tool import (
-    ProjectConflictError,
     adopt_project,
+    PackageBlockedError,
+    ProjectConflictError,
+    assert_accepted_artifact,
     initialize_project,
+    main as project_main,
     project_status,
     publish_candidate,
+    record_creator_acceptance,
 )
 
 MINIMUM_PYTHON = (3, 9)
@@ -308,6 +314,67 @@ def main() -> int:
             outputs={"episodes/EP001/screenplay.md": "# EP001\n"},
         )
         require(published["state"] == "needs_confirmation", "publication state")
+        try:
+            assert_accepted_artifact(root, "episodes/EP001/screenplay.md")
+        except PackageBlockedError as exc:
+            unresolved_blocked = "needs_confirmation" in str(exc)
+        else:
+            unresolved_blocked = False
+        require(unresolved_blocked, "unaccepted artifact blocks downstream work")
+        error = StringIO()
+        with redirect_stderr(error):
+            exit_code = project_main(
+                [
+                    "assert-accepted",
+                    str(root),
+                    "--artifact-path",
+                    "episodes/EP001/screenplay.md",
+                ]
+            )
+        require(
+            exit_code == 2 and "needs_confirmation" in error.getvalue(),
+            "CLI blocks an unresolved artifact",
+        )
+        try:
+            assert_accepted_artifact(root, "episodes/EP001/untracked.md")
+        except PackageBlockedError:
+            untracked_blocked = True
+        else:
+            untracked_blocked = False
+        require(untracked_blocked, "untracked artifact blocks downstream work")
+        accepted = record_creator_acceptance(
+            root, artifact_id="SELFTEST-001", decision="accepted"
+        )
+        require(accepted["state"] == "accepted", "creator acceptance is recorded")
+        require(
+            assert_accepted_artifact(root, "episodes/EP001/screenplay.md")["state"]
+            == "accepted",
+            "current accepted artifact passes the gate",
+        )
+        output = StringIO()
+        with redirect_stdout(output):
+            exit_code = project_main(
+                [
+                    "assert-accepted",
+                    str(root),
+                    "--artifact-path",
+                    "episodes/EP001/screenplay.md",
+                ]
+            )
+        require(
+            exit_code == 0 and json.loads(output.getvalue())["state"] == "accepted",
+            "CLI allows a current accepted artifact",
+        )
+        (root / "episodes/EP001/screenplay.md").write_text(
+            "# EP001 changed\n", encoding="utf-8"
+        )
+        try:
+            assert_accepted_artifact(root, "episodes/EP001/screenplay.md")
+        except PackageBlockedError as exc:
+            stale_blocked = "update_needed" in str(exc)
+        else:
+            stale_blocked = False
+        require(stale_blocked, "stale accepted artifact blocks downstream work")
 
         header = json.dumps(
             {

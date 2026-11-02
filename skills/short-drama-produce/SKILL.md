@@ -32,6 +32,11 @@ python3 {技能目录}/scripts/production_tool.py prepare <project> --job <临�
 
 ## 硬闸门
 
+若项目声明故事/创作决定是生产前置条件，先用项目工具确认对应产物仍为当前已接受状态：
+`python3 {core 技能目录}/scripts/project_tool.py assert-accepted <项目> --artifact-path <项目相对路径>`。未接受、已拒绝、过期或未登记时停止，
+先请创作者接受或修订该产物。此检查与下方媒体任务确认分开：媒体确认只授权当前精确 job 的外部副作用，
+不能替代对故事方向或创作简报的接受。未声明此类前置条件的项目保持原流程。
+
 每次生产都必须经过以下四步，顺序不可合并：
 
 1. 建立一个有边界的 job：一种 modality、明确数量、完整 prompt/spec、参考文件、参数、输出路径和 adapter profile。
