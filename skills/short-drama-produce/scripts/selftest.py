@@ -456,8 +456,10 @@ def main() -> int:
         real_publish_replace = os.replace
         first_target = project / interrupted_outputs[0]
 
-        def stop_after_first_publish(source: str | Path, target: str | Path) -> None:
-            real_publish_replace(source, target)
+        def stop_after_first_publish(
+            source: str | Path, target: str | Path, **kwargs: Any
+        ) -> None:
+            real_publish_replace(source, target, **kwargs)
             if Path(target) == first_target:
                 raise SimulatedProcessStop()
 

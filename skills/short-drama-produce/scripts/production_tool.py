@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import ctypes
 import hashlib
 import json
 import os
@@ -22,6 +23,7 @@ import sys
 import tempfile
 import uuid
 from collections.abc import Iterator, Mapping
+from ctypes import wintypes
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path, PurePosixPath
@@ -2101,6 +2103,23 @@ def _write_run(root: Path, job_id: str, run: Mapping[str, Any]) -> None:
 def _process_is_running(process_id: object) -> bool:
     if not isinstance(process_id, int) or isinstance(process_id, bool) or process_id <= 0:
         return False
+    if os.name == "nt":
+        if process_id > 0xFFFFFFFF:
+            return False
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        kernel32.WaitForSingleObject.restype = wintypes.DWORD
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        handle = kernel32.OpenProcess(0x00100000, False, process_id)
+        if not handle:
+            return ctypes.get_last_error() != 87
+        try:
+            return kernel32.WaitForSingleObject(handle, 0) != 0
+        finally:
+            kernel32.CloseHandle(handle)
     try:
         os.kill(process_id, 0)
     except ProcessLookupError:
