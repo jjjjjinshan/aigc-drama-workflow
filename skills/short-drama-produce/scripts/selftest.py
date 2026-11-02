@@ -9,6 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from production_tool import (
     AdapterError,
@@ -20,6 +21,7 @@ from production_tool import (
     _canonical,
     _job_path,
     _normalize_job,
+    _publish_outputs,
     _validate_stored_job,
     sha256_bytes,
 )
@@ -363,6 +365,39 @@ def main() -> int:
             not (project / race_outputs[0]).exists()
             and (project / race_outputs[1]).read_bytes() == b"concurrent-version",
             "multi-output rollback removed or retained the wrong files",
+        )
+
+        rollback_outputs = [
+            "dist/EP001/partial/rollback-1.png",
+            "dist/EP001/partial/rollback-2.png",
+        ]
+        rollback_sources = [base / "rollback-1.png", base / "rollback-2.png"]
+        for output, source in zip(rollback_outputs, rollback_sources):
+            target = project / output
+            target.write_bytes(b"previous-version")
+            source.write_bytes(b"replacement-version")
+        real_replace = os.replace
+        second_target = project / rollback_outputs[1]
+
+        def fail_second_publish(source: str | Path, target: str | Path) -> None:
+            if Path(target) == second_target and Path(source).suffix == ".tmp":
+                raise PermissionError("simulated second output publish failure")
+            real_replace(source, target)
+
+        try:
+            with patch("production_tool.os.replace", side_effect=fail_second_publish):
+                _publish_outputs(
+                    project,
+                    list(zip(rollback_outputs, rollback_sources)),
+                    overwrite=True,
+                )
+        except PermissionError:
+            pass
+        else:
+            raise AssertionError("failed multi-output publish was accepted")
+        require(
+            all((project / output).read_bytes() == b"previous-version" for output in rollback_outputs),
+            "failed overwrite publish did not restore the previous output set",
         )
 
         head_frame = project / "dist" / "EP001" / "video" / "parent-tail.png"
