@@ -733,8 +733,31 @@ def _lock_handle(handle: Any) -> Iterator[None]:
 def _project_lock(root: Path) -> Iterator[None]:
     lock_path = root / ".short-drama/project.lock"
     lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with lock_path.open("a+b") as handle, _lock_handle(handle):
-        yield
+    parent_details = os.lstat(lock_path.parent)
+    if _is_link_or_reparse(parent_details) or not stat.S_ISDIR(parent_details.st_mode):
+        raise ProjectConflictError("project lock directory is unsafe")
+    try:
+        existing = os.lstat(lock_path)
+    except FileNotFoundError:
+        existing = None
+    if existing is not None and (
+        _is_link_or_reparse(existing)
+        or not stat.S_ISREG(existing.st_mode)
+        or existing.st_nlink > 1
+    ):
+        raise ProjectConflictError("project lock file is unsafe")
+    with lock_path.open("a+b") as handle:
+        opened = os.fstat(handle.fileno())
+        current = os.lstat(lock_path)
+        if (
+            not stat.S_ISREG(opened.st_mode)
+            or opened.st_nlink > 1
+            or _is_link_or_reparse(current)
+            or not os.path.samestat(opened, current)
+        ):
+            raise ProjectConflictError("project lock file changed or is unsafe")
+        with _lock_handle(handle):
+            yield
 
 
 def _hash_mapping(root: Path, relatives: Iterable[str]) -> dict[str, str]:

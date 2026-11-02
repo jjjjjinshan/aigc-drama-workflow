@@ -4,13 +4,20 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import sys
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
 
-from project_tool import adopt_project, initialize_project, project_status, publish_candidate
+from project_tool import (
+    ProjectConflictError,
+    adopt_project,
+    initialize_project,
+    project_status,
+    publish_candidate,
+)
 
 MINIMUM_PYTHON = (3, 9)
 if sys.version_info < MINIMUM_PYTHON:
@@ -266,6 +273,32 @@ def main() -> int:
         require(
             not (invalid_root / ".short-drama/state.json").exists(),
             "invalid project adoption created lifecycle state",
+        )
+
+        linked_root = root.parent / "linked-project"
+        linked_root.mkdir()
+        linked_manifest = {**created["project"], "project_id": "LINKED-PROJECT-001"}
+        (linked_root / "short-drama.json").write_text(
+            json.dumps(linked_manifest), encoding="utf-8"
+        )
+        operations = linked_root / ".short-drama"
+        operations.mkdir()
+        external_lock = root.parent / "outside-lock-target"
+        external_lock.write_bytes(b"")
+        os.link(external_lock, operations / "project.lock")
+        try:
+            adopt_project(linked_root)
+        except ProjectConflictError:
+            pass
+        else:
+            raise AssertionError("adoption accepted a hard-linked project lock")
+        require(
+            external_lock.read_bytes() == b"",
+            "adoption modified an external hard-linked file",
+        )
+        require(
+            not (linked_root / ".short-drama/state.json").exists(),
+            "unsafe lock adoption created lifecycle state",
         )
 
         published = publish_candidate(
