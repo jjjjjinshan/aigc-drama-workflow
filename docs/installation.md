@@ -7,6 +7,7 @@
 | Python | **3.13 或更高** |
 | 依赖 | 无第三方依赖，仅使用标准库 |
 | 平台 | Windows / macOS / Linux |
+| 媒体组装 | 可选：支持 `-/filter_complex` 的 FFmpeg 与配套 ffprobe；字幕烧录还需 subtitles/libass filter |
 
 > **为什么需要 3.13**：校验脚本使用了 `Path.is_dir(follow_symlinks=)`、`Path.is_file(follow_symlinks=)` 等 Python 3.13 才引入的 API。3.9 / 3.12 会在运行时报 `TypeError: is_dir() got an unexpected keyword argument 'follow_symlinks'`。
 >
@@ -17,6 +18,8 @@
 ```bash
 python3 --version    # 应输出 Python 3.13.x 或更高
 ```
+
+只有执行最终成片组装时才需要 FFmpeg/ffprobe；文本创作、结构检查和 Provider 生产调度不依赖它们。请从 [FFmpeg 官方下载页](https://ffmpeg.org/download.html) 选择适合本机的平台构建。运行组装器时可把二进制目录加入 PATH，也可以通过 `--ffmpeg` / `--ffprobe` 显式指定路径。自检若要验证真实合成、探测和完整解码，可设置 `AIGC_DRAMA_FFMPEG` 与 `AIGC_DRAMA_FFPROBE`；GitHub Actions 默认只跑离线自检，不调用真实媒体服务。
 
 ---
 
