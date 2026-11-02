@@ -73,6 +73,20 @@ python3 <本技能目录>/scripts/production_tool.py audit <project>
 python3 <本技能目录>/scripts/dag_scheduler.py <project>/episodes/<EP>/分镜.md
 ```
 
+调度器默认只解析并展示 DAG，不会启动 adapter。要执行视频镜头 DAG，先准备本地 job manifest；其
+`jobs` 必须按镜头 ID 覆盖全部分镜，值为 `{ "job": <production job>, "estimated_cost": {
+"amount": "<decimal>", "currency": "USD", "basis": "<估算依据>" } }`。`CHAIN_PREV` job 的
+`parent_shot_id` 必须与分镜一致，`head_frame` 由调度器在父镜成功后提取并注入。manifest 可放在项目外：
+
+```bash
+python3 <本技能目录>/scripts/dag_scheduler.py <project>/episodes/<EP>/分镜.md \
+  --execute --manifest <本地-job-manifest.json> --adapter-config <项目外-adapters.json>
+```
+
+执行前会校验整份 manifest；每个镜头运行前展示生产预览和费用估算，必须输入该预览中的完整确认字符串。
+取消、失败或确认不匹配都会停止后续镜头。DAG 模式按拓扑顺序串行执行，以保证依赖和逐项确认语义；本地
+`short-drama-produce/scripts/selftest.py` 覆盖离线父子镜头、尾帧注入及取消行为。
+
 `prepare` 只验证并预览，不生产。`confirm` 只保存与当前 job 指纹绑定的一次性确认。
 `run` 才启动 adapter。`audit` 只对账本地任务历史、失败后恢复、重复内容尝试和当前输出字节，
 不会调用供应商，也不把技术成功、文件存在或哈希一致写成媒体质量结论。同一 job 存在未决

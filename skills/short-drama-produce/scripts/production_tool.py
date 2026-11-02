@@ -23,6 +23,7 @@ import tempfile
 import uuid
 from collections.abc import Iterator, Mapping
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from pathlib import Path, PurePosixPath
 from typing import Any, BinaryIO
 
@@ -982,6 +983,35 @@ def _frame_input(root: Path, modality: object, raw: Mapping[str, Any]) -> dict[s
     }
 
 
+def normalize_cost_estimate(value: object) -> dict[str, str]:
+    if not isinstance(value, Mapping) or set(value) != {"amount", "currency", "basis"}:
+        raise ValueError("cost_estimate must contain amount, currency, and basis")
+    amount_raw = value.get("amount")
+    currency = value.get("currency")
+    basis = value.get("basis")
+    if (
+        not isinstance(amount_raw, str)
+        or len(amount_raw) > 32
+        or not isinstance(currency, str)
+        or re.fullmatch(r"[A-Z]{3}", currency) is None
+        or not isinstance(basis, str)
+        or not basis.strip()
+        or len(basis) > 500
+    ):
+        raise ValueError("cost_estimate fields are invalid")
+    try:
+        amount = Decimal(amount_raw)
+    except InvalidOperation as exc:
+        raise ValueError("cost_estimate amount is invalid") from exc
+    if not amount.is_finite() or amount < 0:
+        raise ValueError("cost_estimate amount must be finite and non-negative")
+    return {
+        "amount": format(amount, "f"),
+        "currency": currency,
+        "basis": basis.strip(),
+    }
+
+
 def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     if not isinstance(raw, Mapping) or set(raw) - ALLOWED_JOB_KEYS:
         raise ValueError("job contains unsupported fields")
@@ -1638,8 +1668,17 @@ def _write_run(root: Path, job_id: str, run: Mapping[str, Any]) -> None:
     )
 
 
-def run_job(root: Path, *, job_id: str, adapter_config: Path) -> dict[str, Any]:
+def run_job(
+    root: Path,
+    *,
+    job_id: str,
+    adapter_config: Path,
+    estimated_cost: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     root = find_project(root)
+    cost_estimate = (
+        normalize_cost_estimate(estimated_cost) if estimated_cost is not None else None
+    )
     with tempfile.TemporaryDirectory(prefix="short-drama-inputs-") as directory:
         attempt_root = Path(directory)
         snapshot_root = attempt_root / "inputs"
@@ -1692,6 +1731,7 @@ def run_job(root: Path, *, job_id: str, adapter_config: Path) -> dict[str, Any]:
                 "start_frame_source": job["start_frame_source"],
                 "parent_shot_id": job["parent_shot_id"],
                 "head_frame": job["head_frame"],
+                "estimated_cost": cost_estimate,
                 "status": "running",
                 "started_at": utc_now(),
                 "finished_at": None,
@@ -1745,6 +1785,7 @@ def run_job(root: Path, *, job_id: str, adapter_config: Path) -> dict[str, Any]:
         "run_id": run_id,
         "state": "succeeded",
         "outputs": run["outputs"],
+        "estimated_cost": cost_estimate,
     }
 
 

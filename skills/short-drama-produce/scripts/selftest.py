@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from production_tool import (
+    AdapterError,
     ConfirmationRequiredError,
     _project_lock,
     confirm_job,
@@ -27,6 +28,7 @@ from provider_adapters import (
     compile_minimax_music_payload,
     compile_seedance_payload,
 )
+from dag_scheduler import DagError, run_production_dag
 
 MINIMUM_PYTHON = (3, 10)
 if sys.version_info < MINIMUM_PYTHON:
@@ -211,6 +213,106 @@ def main() -> int:
             "fixture did not execute the confirmed CHAIN_PREV job",
         )
 
+        dag_project = base / "dag-project"
+        dag_project.mkdir()
+        (dag_project / "short-drama.json").write_text("{}\n", encoding="utf-8")
+        (dag_project / "episodes").mkdir()
+        dag_config = base / "dag-adapters.json"
+        dag_config.write_text(
+            json.dumps({"adapters": {"fixture": {"command": [sys.executable, str(fixture)]}}}),
+            encoding="utf-8",
+        )
+        graph = {
+            "nodes": [
+                {"shot_id": "SHOT-EP001-002", "start_frame_source": "CHAIN_PREV", "parent_shot_id": "SHOT-EP001-001"},
+                {"shot_id": "SHOT-EP001-001", "start_frame_source": "ASSET", "parent_shot_id": None},
+            ],
+            "dependencies": {"SHOT-EP001-002": "SHOT-EP001-001"},
+            "topological_order": ["SHOT-EP001-001", "SHOT-EP001-002"],
+        }
+        def plan(job_id: str, shot_id: str, *, chained: bool = False) -> dict[str, Any]:
+            job = {
+                "job_id": job_id,
+                "modality": "video",
+                "adapter": "fixture",
+                "prompt": "offline DAG self-test",
+                "references": [],
+                "outputs": [f"dist/EP001/video/{shot_id}.mp4"],
+                "parameters": {"duration": 5},
+                "overwrite": False,
+            }
+            if chained:
+                job.update({"start_frame_source": "CHAIN_PREV", "parent_shot_id": "SHOT-EP001-001"})
+            return {"job": job, "estimated_cost": {"amount": "0", "currency": "USD", "basis": "offline fixture"}}
+        plans = {
+            "SHOT-EP001-001": plan("DAG-PARENT", "SHOT-EP001-001"),
+            "SHOT-EP001-002": plan("DAG-CHILD", "SHOT-EP001-002", chained=True),
+        }
+        accepted: list[str] = []
+        result = run_production_dag(
+            dag_project,
+            graph,
+            plans,
+            dag_config,
+            request_confirmation=lambda preview: accepted.append(preview["job_id"]) or preview["confirmation"],
+            extract_frame=lambda video, output: output.parent.mkdir(parents=True, exist_ok=True) or output.write_bytes(png_header + b"tail"),
+        )
+        require(result["completed"] == graph["topological_order"], "DAG did not respect parent-first order")
+        require(accepted == ["DAG-PARENT", "DAG-CHILD"], "DAG did not request confirmation per shot")
+        require(result["results"]["SHOT-EP001-002"]["state"] == "succeeded", "chained fixture shot failed")
+        cancelled: list[str] = []
+        def cancel_child(preview: dict[str, Any]) -> str:
+            cancelled.append(preview["job_id"])
+            return preview["confirmation"] if preview["job_id"] == "DAG-CANCEL" else "cancel"
+        try:
+            run_production_dag(
+                dag_project,
+                graph,
+                {
+                    "SHOT-EP001-001": plan("DAG-CANCEL", "SHOT-EP001-CANCEL"),
+                    "SHOT-EP001-002": plan(
+                        "DAG-CANCEL-CHILD", "SHOT-EP001-CANCEL-CHILD", chained=True
+                    ),
+                },
+                dag_config,
+                request_confirmation=cancel_child,
+                extract_frame=lambda video, output: output.parent.mkdir(parents=True, exist_ok=True) or output.write_bytes(png_header + b"cancelled-tail"),
+            )
+        except DagError:
+            pass
+        else:
+            raise AssertionError("DAG accepted a non-matching confirmation")
+        require(cancelled == ["DAG-CANCEL", "DAG-CANCEL-CHILD"], "DAG did not stop at the cancelled child")
+        retry_result = run_production_dag(
+            dag_project,
+            graph,
+            {"SHOT-EP001-001": plan("DAG-RETRY", "SHOT-EP001-RETRY"), "SHOT-EP001-002": plan("DAG-RETRY-CHILD", "SHOT-EP001-RETRY-CHILD", chained=True)},
+            dag_config,
+            request_confirmation=lambda preview: preview["confirmation"],
+            extract_frame=lambda video, output: output.parent.mkdir(parents=True, exist_ok=True) or output.write_bytes(png_header + b"retry-tail"),
+        )
+        require(retry_result["state"] == "succeeded", "DAG retry failed after a cancelled child")
+        failing_config = base / "dag-failing-adapters.json"
+        failing_config.write_text(
+            json.dumps({"adapters": {"fixture": {"command": [sys.executable, str(fixture), "--fail"]}}}),
+            encoding="utf-8",
+        )
+        attempted: list[str] = []
+        try:
+            run_production_dag(
+                dag_project,
+                graph,
+                {"SHOT-EP001-001": plan("DAG-FAIL", "SHOT-EP001-FAIL"), "SHOT-EP001-002": plan("DAG-FAIL-CHILD", "SHOT-EP001-CHILD", chained=True)},
+                failing_config,
+                request_confirmation=lambda preview: attempted.append(preview["job_id"]) or preview["confirmation"],
+                extract_frame=lambda video, output: output,
+            )
+        except AdapterError:
+            pass
+        else:
+            raise AssertionError("DAG continued after a failed parent shot")
+        require(attempted == ["DAG-FAIL"], "child shot was prepared after its parent failed")
+
     require(
         compile_gpt_image_2_payload(
         {
@@ -253,7 +355,7 @@ def main() -> int:
         "MiniMax Music profile compiled the wrong model",
     )
 
-    print("16 self-tests passed")
+    print("production and DAG self-tests passed")
     return 0
 
 
