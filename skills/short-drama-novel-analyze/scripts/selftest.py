@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 
 from novel_index import build_index, sample_chapters, verify_index
+from validate_episode_candidates import validate_candidates
 
 MINIMUM_PYTHON = (3, 9)
 if sys.version_info < MINIMUM_PYTHON:
@@ -141,7 +142,69 @@ def main() -> int:
         source.write_text(source.read_text(encoding="utf-8") + "变化\n", encoding="utf-8")
         require(verify_index(index_path, source)["verified"] is False, "source drift")
 
-    print("18 self-tests passed")
+    with tempfile.TemporaryDirectory() as directory:
+        analysis = Path(directory)
+        chapters = analysis / "chapters"
+        chapters.mkdir()
+        index = {"chapters": [{"sequence": 1}, {"sequence": 2}]}
+        (analysis / "_index.json").write_text(json.dumps(index), encoding="utf-8")
+        (chapters / "ch-001-extract.md").write_text(
+            "P1 状态 | 建立当前目标\nP2 转折 | 目标发生变化\n", encoding="utf-8"
+        )
+        (chapters / "ch-002-extract.md").write_text(
+            "P1 行动 | 角色作出选择\n", encoding="utf-8"
+        )
+        candidate = {
+            "record_type": "episode_candidate",
+            "candidate_id": "E1",
+            "chapter_range": {"sequence_start": 1, "sequence_end": 2},
+            "source_point_refs": [
+                {"sequence": 1, "points": "P1-P2"},
+                {"sequence": 2, "points": "P1"},
+            ],
+        }
+        candidates = analysis / "episode-candidates.jsonl"
+        candidates.write_text(json.dumps(candidate) + "\n", encoding="utf-8")
+        require(validate_candidates(analysis) == [], "valid episode source points")
+        index["chapters"].append({"sequence": 1})
+        (analysis / "_index.json").write_text(json.dumps(index), encoding="utf-8")
+        require(
+            any("invalid chapter sequences" in problem for problem in validate_candidates(analysis)),
+            "reject duplicate indexed chapter sequences",
+        )
+        index["chapters"].pop()
+        (analysis / "_index.json").write_text(json.dumps(index), encoding="utf-8")
+        (chapters / "ch-001-extract.md").write_text(
+            "P1 状态 | 建立当前目标\nP1 状态 | 重复编号\nP2 转折 | 目标发生变化\n",
+            encoding="utf-8",
+        )
+        require(
+            any("duplicate extracted point IDs" in problem for problem in validate_candidates(analysis)),
+            "reject duplicate extracted point identifiers",
+        )
+        (chapters / "ch-001-extract.md").write_text(
+            "P1 状态 | 建立当前目标\nP2 转折 | 目标发生变化\n", encoding="utf-8"
+        )
+        candidate["source_point_refs"][0]["points"] = "P1-P3"
+        candidates.write_text(json.dumps(candidate) + "\n", encoding="utf-8")
+        require(
+            any("P3" in problem for problem in validate_candidates(analysis)),
+            "reject missing source point",
+        )
+        candidate["source_point_refs"] = [{"sequence": 2, "points": "P1"}]
+        candidate["chapter_range"] = {"sequence_start": 1, "sequence_end": 1}
+        candidates.write_text(json.dumps(candidate) + "\n", encoding="utf-8")
+        require(
+            any("outside chapter_range" in problem for problem in validate_candidates(analysis)),
+            "reject source point outside candidate chapter range",
+        )
+        candidates.write_text("[]\n", encoding="utf-8")
+        require(
+            any("record must be a JSON object" in problem for problem in validate_candidates(analysis)),
+            "reject non-object JSONL record",
+        )
+
+    print("24 self-tests passed")
     return 0
 
 

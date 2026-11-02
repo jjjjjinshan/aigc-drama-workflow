@@ -87,7 +87,10 @@
 
 每条候选写进 `episode-candidates.jsonl`，字段见
 [分集候选样例](../assets/episode-candidate.example.jsonl)。每条都带：来源单元与章号区间、
-承担的功能、判定类别、桥段标签、未决项、以及 `creator_acceptance: pending`。
+精确的 S2 情节点引用（`source_point_refs`）、承担的功能、判定类别、桥段标签、未决项、以及
+`creator_acceptance: pending`。`chapter_range` 说明候选的章节跨度，`source_point_refs` 指出
+实际承担戏剧功能的提取点；每个引用必须能在对应章节提取文件中找到。完成后运行
+`validate_episode_candidates.py <项目>/项目开发/source-analysis` 检查章节范围和情节点引用。
 
 **集数不由本技能决定**。 候选可以多于、也可以少于创作者设定的集数；差多少要明说，
 由创作者与 `$short-drama-develop` 决定合并还是拆分。
