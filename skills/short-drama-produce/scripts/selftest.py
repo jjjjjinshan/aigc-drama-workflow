@@ -249,6 +249,122 @@ def main() -> int:
             "fixture production did not write WAV media",
         )
 
+        partial_adapter = base / "partial_adapter.py"
+        partial_adapter.write_text(
+            "import json, sys\n"
+            "from pathlib import Path\n"
+            "job = json.load(sys.stdin)\n"
+            "root = Path(job['output_root'])\n"
+            "first = root / 'first.png'\n"
+            "first.write_bytes(b'new-first')\n"
+            "outputs = [{'target': job['outputs'][0], 'source': str(first)}]\n"
+            "if job['parameters'].get('race_second_output'):\n"
+            "    second = root / 'second.png'\n"
+            "    second.write_bytes(b'new-second')\n"
+            "    appeared = Path(job['outputs'][1])\n"
+            "    appeared.parent.mkdir(parents=True, exist_ok=True)\n"
+            "    appeared.write_bytes(b'concurrent-version')\n"
+            "    outputs.append({'target': job['outputs'][1], 'source': str(second)})\n"
+            "else:\n"
+            "    outputs.append({'target': job['outputs'][1], 'source': str(root / 'missing.png')})\n"
+            "json.dump({'outputs': outputs}, sys.stdout)\n",
+            encoding="utf-8",
+        )
+        partial_config = base / "partial-adapter.json"
+        partial_config.write_text(
+            json.dumps({"adapters": {"partial": {
+                "command": [sys.executable, str(partial_adapter)],
+                "timeout_seconds": 30,
+            }}}),
+            encoding="utf-8",
+        )
+        for overwrite in (False, True):
+            outputs = [
+                f"dist/EP001/partial/{'overwrite' if overwrite else 'new'}-{index}.png"
+                for index in (1, 2)
+            ]
+            if overwrite:
+                for output in outputs:
+                    target = project / output
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(b"previous-version")
+            partial_job = {
+                "job_id": f"SELFTEST-PARTIAL-{int(overwrite)}",
+                "modality": "image",
+                "adapter": "partial",
+                "prompt": "two output fixture",
+                "references": [],
+                "outputs": outputs,
+                "parameters": {},
+                "overwrite": overwrite,
+            }
+            partial_job_file = base / f"partial-{int(overwrite)}.json"
+            partial_job_file.write_text(json.dumps(partial_job), encoding="utf-8")
+            partial_preview = prepare_job(project, partial_job_file)
+            confirm_job(
+                project,
+                job_id=partial_job["job_id"],
+                confirmation=partial_preview["confirmation"],
+            )
+            try:
+                run_job(
+                    project,
+                    job_id=partial_job["job_id"],
+                    adapter_config=partial_config,
+                )
+            except AdapterError:
+                pass
+            else:
+                raise AssertionError("incomplete multi-output adapter run succeeded")
+            expected = b"previous-version" if overwrite else None
+            require(
+                all(
+                    (project / output).read_bytes() == expected
+                    if expected is not None
+                    else not (project / output).exists()
+                    for output in outputs
+                ),
+                "failed multi-output run left partial or overwritten production outputs",
+            )
+
+        race_outputs = [
+            "dist/EP001/partial/race-1.png",
+            "dist/EP001/partial/race-2.png",
+        ]
+        race_job = {
+            "job_id": "SELFTEST-PARTIAL-RACE",
+            "modality": "image",
+            "adapter": "partial",
+            "prompt": "publish race fixture",
+            "references": [],
+            "outputs": race_outputs,
+            "parameters": {"race_second_output": True},
+            "overwrite": False,
+        }
+        race_job_file = base / "partial-race.json"
+        race_job_file.write_text(json.dumps(race_job), encoding="utf-8")
+        race_preview = prepare_job(project, race_job_file)
+        confirm_job(
+            project,
+            job_id=race_job["job_id"],
+            confirmation=race_preview["confirmation"],
+        )
+        try:
+            run_job(
+                project,
+                job_id=race_job["job_id"],
+                adapter_config=partial_config,
+            )
+        except FileExistsError:
+            pass
+        else:
+            raise AssertionError("output appearing during publish was overwritten")
+        require(
+            not (project / race_outputs[0]).exists()
+            and (project / race_outputs[1]).read_bytes() == b"concurrent-version",
+            "multi-output rollback removed or retained the wrong files",
+        )
+
         head_frame = project / "dist" / "EP001" / "video" / "parent-tail.png"
         head_frame.parent.mkdir(parents=True, exist_ok=True)
         png_header = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"

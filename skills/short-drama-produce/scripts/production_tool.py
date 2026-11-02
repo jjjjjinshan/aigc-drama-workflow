@@ -1642,9 +1642,7 @@ def _validate_adapter_outputs(
     return result
 
 
-def _copy_output(
-    source: Path, target: Path, *, overwrite: bool
-) -> tuple[str, int]:
+def _stage_output(source: Path, target: Path) -> tuple[Path, str, int]:
     temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
     target.parent.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256()
@@ -1668,10 +1666,9 @@ def _copy_output(
             raise AdapterError("adapter output changed while opening; confirmation was consumed")
         if opened.st_size > MAX_OUTPUT_BYTES:
             raise AdapterError("adapter output file is too large; confirmation was consumed")
-        with os.fdopen(descriptor, "rb", closefd=True) as incoming, temporary.open(
-            "xb"
-        ) as outgoing:
-            descriptor = -1
+        incoming = os.fdopen(descriptor, "rb", closefd=True)
+        descriptor = -1
+        with incoming, temporary.open("xb") as outgoing:
             for chunk in iter(lambda: incoming.read(1024 * 1024), b""):
                 size += len(chunk)
                 if size > MAX_OUTPUT_BYTES:
@@ -1680,24 +1677,88 @@ def _copy_output(
                 outgoing.write(chunk)
             outgoing.flush()
             os.fsync(outgoing.fileno())
-        if overwrite:
-            os.replace(temporary, target)
-        else:
-            try:
-                os.link(temporary, target, follow_symlinks=False)
-            except FileExistsError as exc:
-                raise FileExistsError(
-                    f"output appeared while production was running: {target.name}"
-                ) from exc
-            temporary.unlink()
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
     finally:
         if descriptor >= 0:
             os.close(descriptor)
-        try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
-    return digest.hexdigest(), size
+    return temporary, digest.hexdigest(), size
+
+
+def _publish_outputs(
+    root: Path,
+    entries: list[tuple[str, Path]],
+    *,
+    overwrite: bool,
+) -> list[dict[str, Any]]:
+    staged: list[tuple[Path, Path, str, int]] = []
+    backups: dict[Path, Path | None] = {}
+    published: list[Path] = []
+    try:
+        for relative, source in entries:
+            target = _project_file(root, relative, create_parent=True)
+            temporary, digest, size = _stage_output(source, target)
+            staged.append((target, temporary, digest, size))
+
+        if overwrite:
+            for target, _, _, _ in staged:
+                backup: Path | None = None
+                try:
+                    details = target.lstat()
+                except FileNotFoundError:
+                    pass
+                else:
+                    if _is_link_or_reparse(details) or not stat.S_ISREG(details.st_mode):
+                        raise AdapterError("existing production output is unsafe")
+                    backup = target.with_name(f".{target.name}.{uuid.uuid4().hex}.bak")
+                    os.link(target, backup, follow_symlinks=False)
+                backups[target] = backup
+
+        for target, temporary, _, _ in staged:
+            if overwrite:
+                os.replace(temporary, target)
+            else:
+                try:
+                    os.link(temporary, target, follow_symlinks=False)
+                except FileExistsError as exc:
+                    raise FileExistsError(
+                        f"output appeared while production was running: {target.name}"
+                    ) from exc
+            published.append(target)
+
+        return [
+            {
+                "path": relative,
+                "media_type": MEDIA_TYPES[PurePosixPath(relative).suffix.casefold()],
+                "bytes": size,
+                "sha256": digest,
+            }
+            for (relative, _), (_, _, digest, size) in zip(entries, staged)
+        ]
+    except Exception:
+        rollback_error: Exception | None = None
+        for target in reversed(published):
+            backup = backups.get(target)
+            try:
+                if backup is None:
+                    target.unlink(missing_ok=True)
+                else:
+                    os.replace(backup, target)
+                    backups[target] = None
+            except OSError as exc:
+                rollback_error = rollback_error or exc
+        if rollback_error is not None:
+            raise AdapterError(
+                "production output publication failed and rollback was incomplete; inspect output paths"
+            ) from rollback_error
+        raise
+    finally:
+        for _, temporary, _, _ in staged:
+            temporary.unlink(missing_ok=True)
+        for backup in backups.values():
+            if backup is not None:
+                backup.unlink(missing_ok=True)
 
 
 def _latest_run(root: Path, job_id: str) -> dict[str, Any] | None:
@@ -1868,21 +1929,10 @@ def run_job(
         try:
             response = _run_adapter(command, timeout, payload, root)
             adapter_outputs = _validate_adapter_outputs(job, response, output_root)
-            written: list[dict[str, Any]] = []
             with _project_lock(root):
-                for target_name, source in adapter_outputs:
-                    target = _project_file(root, target_name, create_parent=True)
-                    digest, size = _copy_output(
-                        source, target, overwrite=bool(job["overwrite"])
-                    )
-                    written.append(
-                        {
-                            "path": target_name,
-                            "media_type": MEDIA_TYPES[PurePosixPath(target_name).suffix.casefold()],
-                            "bytes": size,
-                            "sha256": digest,
-                        }
-                    )
+                written = _publish_outputs(
+                    root, adapter_outputs, overwrite=bool(job["overwrite"])
+                )
                 run["status"] = "succeeded"
                 run["finished_at"] = utc_now()
                 run["outputs"] = written
