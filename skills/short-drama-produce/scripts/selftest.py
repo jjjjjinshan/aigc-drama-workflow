@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Any
 
 from production_tool import (
     ConfirmationRequiredError,
+    _project_lock,
     confirm_job,
     prepare_job,
     run_job,
@@ -21,7 +23,7 @@ from provider_adapters import (
     compile_seedance_payload,
 )
 
-MINIMUM_PYTHON = (3, 9)
+MINIMUM_PYTHON = (3, 10)
 if sys.version_info < MINIMUM_PYTHON:
     raise SystemExit("selftest.py requires Python 3.9 or newer")
 
@@ -37,6 +39,23 @@ def main() -> int:
         project = base / "project"
         project.mkdir()
         (project / "short-drama.json").write_text("{}\n", encoding="utf-8")
+        production_metadata = project / ".short-drama" / "production"
+        production_metadata.mkdir(parents=True)
+        external_lock = base / "external-lock-target"
+        external_lock.write_bytes(b"")
+        os.link(external_lock, production_metadata / "lock")
+        try:
+            with _project_lock(project):
+                pass
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("production accepted a hard-linked lock file")
+        require(
+            external_lock.read_bytes() == b"",
+            "production lock initialization modified an external hard-linked file",
+        )
+        (production_metadata / "lock").unlink()
         job_path = project / "music-job.json"
         job: dict[str, Any] = {
             "job_id": "SELFTEST-MUSIC-001",
