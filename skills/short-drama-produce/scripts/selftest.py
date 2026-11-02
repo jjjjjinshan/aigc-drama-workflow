@@ -9,6 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from production_tool import (
     AdapterError,
@@ -20,8 +21,14 @@ from production_tool import (
     _canonical,
     _job_path,
     _normalize_job,
+    _publish_outputs,
+    _project_file,
+    _read_run_history,
+    _write_run,
+    recover_interrupted_run,
     _validate_stored_job,
     sha256_bytes,
+    utc_now,
 )
 from provider_adapters import (
     compile_gpt_image_2_payload,
@@ -32,7 +39,7 @@ from dag_scheduler import DagError, run_production_dag
 
 MINIMUM_PYTHON = (3, 10)
 if sys.version_info < MINIMUM_PYTHON:
-    raise SystemExit("selftest.py requires Python 3.9 or newer")
+    raise SystemExit("selftest.py requires Python 3.10 or newer")
 
 
 def require(condition: bool, message: str) -> None:
@@ -46,6 +53,12 @@ def main() -> int:
         project = base / "project"
         project.mkdir()
         (project / "short-drama.json").write_text("{}\n", encoding="utf-8")
+        (project / "root-alias").mkdir()
+        aliased_root = project / "root-alias" / ".."
+        alias_target = _project_file(
+            aliased_root, "dist/EP001/path-probe.bin", create_parent=True
+        )
+        require(alias_target.parent.is_dir(), "project path alias was not canonicalized")
         production_metadata = project / ".short-drama" / "production"
         production_metadata.mkdir(parents=True)
         external_lock = base / "external-lock-target"
@@ -90,6 +103,110 @@ def main() -> int:
             ),
             encoding="utf-8",
         )
+
+        episode = project / "episodes" / "EP001"
+        episode.mkdir(parents=True)
+        screenplay = "# EP001 测试\n\n## EP001-SC001 内 · 站台 · 深夜\n\n沈青：你好。\n"
+        screenplay_bytes = screenplay.encode("utf-8")
+        spoken = "沈青：你好。".encode("utf-8")
+        span_start = screenplay_bytes.index(spoken)
+        span_end = span_start + len(spoken)
+        (episode / "剧本.md").write_bytes(screenplay_bytes)
+        index_rows = [
+            {"record_type": "screenplay_index_meta", "source_byte_length": len(screenplay_bytes)},
+            {
+                "record_type": "block", "block_id": "BLK-EP001-SC001-D01",
+                "kind": "dialogue", "tag": None, "byte_start": span_start,
+                "byte_end": span_end, "speaker": "沈青",
+            },
+        ]
+        (episode / "screenplay-index.jsonl").write_text(
+            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in index_rows),
+            encoding="utf-8",
+        )
+        voice_sheet = [
+            {
+                "record_type": "sources", "schema_version": "1.0.0",
+                "sources": {"screenplay-index": {
+                    "owner": "short-drama-write",
+                    "artifact": "episodes/EP001/screenplay-index.jsonl",
+                }},
+            },
+            {
+                "line_id": "VLINE-EP001-SC001-001", "episode_id": "EP001",
+                "scene_id": "EP001-SC001", "speaker": "CHAR-SHENQING",
+                "speaker_display": "沈青", "line_text": "你好。",
+                "source_ref": {"src": "screenplay-index", "record_id": "BLK-EP001-SC001-D01"},
+                "channel": "sync",
+            },
+        ]
+        voice_sheet_path = episode / "voice-record-sheet.jsonl"
+        voice_sheet_path.write_text(
+            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in voice_sheet),
+            encoding="utf-8",
+        )
+        tts_job: dict[str, Any] = {
+            "job_id": "SELFTEST-TTS-001", "modality": "tts", "adapter": "fixture",
+            "prompt": "你好。", "source": "episodes/EP001/voice-record-sheet.jsonl",
+            "source_entry": "VLINE-EP001-SC001-001", "references": [],
+            "outputs": ["dist/EP001/audio/VLINE-EP001-SC001-001.wav"],
+            "parameters": {"voice_profile": "fixture-voice"}, "overwrite": False,
+        }
+        for invalid_tts in (
+            {**tts_job, "prompt": "您好。"},
+            {**tts_job, "source_entry": "VLINE-EP002-SC001-001"},
+            {key: value for key, value in tts_job.items() if key != "source_entry"},
+        ):
+            try:
+                _normalize_job(project, invalid_tts)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("unbound or divergent TTS line was accepted")
+        tts_job_path = project / "tts-job.json"
+        tts_job_path.write_text(json.dumps(tts_job, ensure_ascii=False), encoding="utf-8")
+        tts_preview = prepare_job(project, tts_job_path)
+        require(
+            tts_preview["source_entry"] == "VLINE-EP001-SC001-001",
+            "selected voice line was omitted from the confirmation preview",
+        )
+        confirm_job(project, job_id=tts_job["job_id"], confirmation=tts_preview["confirmation"])
+        tts_result = run_job(project, job_id=tts_job["job_id"], adapter_config=config)
+        require(tts_result["state"] == "succeeded", "fixture TTS job did not run")
+
+        changed_tts_job = {**tts_job, "job_id": "SELFTEST-TTS-002",
+                           "outputs": ["dist/EP001/audio/VLINE-EP001-SC001-002.wav"]}
+        changed_tts_path = project / "tts-job-changed.json"
+        changed_tts_path.write_text(
+            json.dumps(changed_tts_job, ensure_ascii=False), encoding="utf-8"
+        )
+        changed_preview = prepare_job(project, changed_tts_path)
+        stored_tts = json.loads(
+            _job_path(project, changed_tts_job["job_id"]).read_text(encoding="utf-8")
+        )
+        require(
+            set(stored_tts["inputs"]) == {
+                "episodes/EP001/voice-record-sheet.jsonl",
+                "episodes/EP001/screenplay-index.jsonl",
+                "episodes/EP001/剧本.md",
+            },
+            "TTS confirmation did not pin the voice sheet and its screenplay projection inputs",
+        )
+        confirm_job(
+            project, job_id=changed_tts_job["job_id"],
+            confirmation=changed_preview["confirmation"],
+        )
+        screenplay_path = episode / "剧本.md"
+        original_screenplay = screenplay_path.read_bytes()
+        screenplay_path.write_bytes(original_screenplay + b"\n")
+        try:
+            run_job(project, job_id=changed_tts_job["job_id"], adapter_config=config)
+        except (ValueError, ConfirmationRequiredError):
+            pass
+        else:
+            raise AssertionError("TTS run accepted a screenplay changed after confirmation")
+        finally:
+            screenplay_path.write_bytes(original_screenplay)
 
         preview = prepare_job(project, job_path)
         stored = json.loads(
@@ -143,6 +260,291 @@ def main() -> int:
         require(
             (project / job["outputs"][0]).read_bytes().startswith(b"RIFF"),
             "fixture production did not write WAV media",
+        )
+
+        partial_adapter = base / "partial_adapter.py"
+        partial_adapter.write_text(
+            "import json, sys\n"
+            "from pathlib import Path\n"
+            "job = json.load(sys.stdin)\n"
+            "root = Path(job['output_root'])\n"
+            "first = root / 'first.png'\n"
+            "first.write_bytes(b'new-first')\n"
+            "outputs = [{'target': job['outputs'][0], 'source': str(first)}]\n"
+            "if job['parameters'].get('race_second_output'):\n"
+            "    second = root / 'second.png'\n"
+            "    second.write_bytes(b'new-second')\n"
+            "    appeared = Path(job['outputs'][1])\n"
+            "    appeared.parent.mkdir(parents=True, exist_ok=True)\n"
+            "    appeared.write_bytes(b'concurrent-version')\n"
+            "    outputs.append({'target': job['outputs'][1], 'source': str(second)})\n"
+            "else:\n"
+            "    outputs.append({'target': job['outputs'][1], 'source': str(root / 'missing.png')})\n"
+            "json.dump({'outputs': outputs}, sys.stdout)\n",
+            encoding="utf-8",
+        )
+        partial_config = base / "partial-adapter.json"
+        partial_config.write_text(
+            json.dumps({"adapters": {"partial": {
+                "command": [sys.executable, str(partial_adapter)],
+                "timeout_seconds": 30,
+            }}}),
+            encoding="utf-8",
+        )
+        for overwrite in (False, True):
+            outputs = [
+                f"dist/EP001/partial/{'overwrite' if overwrite else 'new'}-{index}.png"
+                for index in (1, 2)
+            ]
+            if overwrite:
+                for output in outputs:
+                    target = project / output
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(b"previous-version")
+            partial_job = {
+                "job_id": f"SELFTEST-PARTIAL-{int(overwrite)}",
+                "modality": "image",
+                "adapter": "partial",
+                "prompt": "two output fixture",
+                "references": [],
+                "outputs": outputs,
+                "parameters": {},
+                "overwrite": overwrite,
+            }
+            partial_job_file = base / f"partial-{int(overwrite)}.json"
+            partial_job_file.write_text(json.dumps(partial_job), encoding="utf-8")
+            partial_preview = prepare_job(project, partial_job_file)
+            confirm_job(
+                project,
+                job_id=partial_job["job_id"],
+                confirmation=partial_preview["confirmation"],
+            )
+            try:
+                run_job(
+                    project,
+                    job_id=partial_job["job_id"],
+                    adapter_config=partial_config,
+                )
+            except AdapterError:
+                pass
+            else:
+                raise AssertionError("incomplete multi-output adapter run succeeded")
+            expected = b"previous-version" if overwrite else None
+            require(
+                all(
+                    (project / output).read_bytes() == expected
+                    if expected is not None
+                    else not (project / output).exists()
+                    for output in outputs
+                ),
+                "failed multi-output run left partial or overwritten production outputs",
+            )
+
+        race_outputs = [
+            "dist/EP001/partial/race-1.png",
+            "dist/EP001/partial/race-2.png",
+        ]
+        race_job = {
+            "job_id": "SELFTEST-PARTIAL-RACE",
+            "modality": "image",
+            "adapter": "partial",
+            "prompt": "publish race fixture",
+            "references": [],
+            "outputs": race_outputs,
+            "parameters": {"race_second_output": True},
+            "overwrite": False,
+        }
+        race_job_file = base / "partial-race.json"
+        race_job_file.write_text(json.dumps(race_job), encoding="utf-8")
+        race_preview = prepare_job(project, race_job_file)
+        confirm_job(
+            project,
+            job_id=race_job["job_id"],
+            confirmation=race_preview["confirmation"],
+        )
+        try:
+            run_job(
+                project,
+                job_id=race_job["job_id"],
+                adapter_config=partial_config,
+            )
+        except FileExistsError:
+            pass
+        else:
+            raise AssertionError("output appearing during publish was overwritten")
+        require(
+            not (project / race_outputs[0]).exists()
+            and (project / race_outputs[1]).read_bytes() == b"concurrent-version",
+            "multi-output rollback removed or retained the wrong files",
+        )
+
+        rollback_outputs = [
+            "dist/EP001/partial/rollback-1.png",
+            "dist/EP001/partial/rollback-2.png",
+        ]
+        rollback_sources = [base / "rollback-1.png", base / "rollback-2.png"]
+        for output, source in zip(rollback_outputs, rollback_sources):
+            target = project / output
+            target.write_bytes(b"previous-version")
+            source.write_bytes(b"replacement-version")
+        real_replace = os.replace
+        second_target = project / rollback_outputs[1]
+
+        def fail_second_publish(source: str | Path, target: str | Path) -> None:
+            if Path(target) == second_target and Path(source).suffix == ".tmp":
+                raise PermissionError("simulated second output publish failure")
+            real_replace(source, target)
+
+        try:
+            with patch("production_tool.os.replace", side_effect=fail_second_publish):
+                _publish_outputs(
+                    project,
+                    list(zip(rollback_outputs, rollback_sources)),
+                    overwrite=True,
+                )
+        except PermissionError:
+            pass
+        else:
+            raise AssertionError("failed multi-output publish was accepted")
+        require(
+            all((project / output).read_bytes() == b"previous-version" for output in rollback_outputs),
+            "failed overwrite publish did not restore the previous output set",
+        )
+
+        interrupted_job_id = "SELFTEST-PUBLISH-INTERRUPTED"
+        interrupted_run_id = "20261103T120000-deadbeef"
+        interrupted_outputs = [
+            "dist/EP001/partial/interrupted-1.png",
+            "dist/EP001/partial/interrupted-2.png",
+        ]
+        interrupted_sources = [base / "interrupted-1.png", base / "interrupted-2.png"]
+        for output, source in zip(interrupted_outputs, interrupted_sources):
+            (project / output).parent.mkdir(parents=True, exist_ok=True)
+            (project / output).write_bytes(b"previous-version")
+            source.write_bytes(b"replacement-version")
+        interrupted_job = {
+            "job_id": interrupted_job_id,
+            "modality": "image",
+            "adapter": "fixture",
+            "prompt": "interrupted publication recovery",
+            "references": [],
+            "outputs": interrupted_outputs,
+            "parameters": {},
+            "overwrite": True,
+        }
+        interrupted_job_path = base / "interrupted-job.json"
+        interrupted_job_path.write_text(json.dumps(interrupted_job), encoding="utf-8")
+        prepare_job(project, interrupted_job_path)
+        stored_interrupted_job = json.loads(
+            _job_path(project, interrupted_job_id).read_text(encoding="utf-8")
+        )
+        interrupted_run = {
+            "schema_version": "1.0",
+            "run_id": interrupted_run_id,
+            "job_id": interrupted_job_id,
+            "fingerprint": stored_interrupted_job["fingerprint"],
+            "status": "running",
+            "started_at": utc_now(),
+            "finished_at": None,
+            "process_id": os.getpid(),
+            "outputs": [],
+        }
+        _write_run(project, interrupted_job_id, interrupted_run)
+        class SimulatedProcessStop(BaseException):
+            pass
+
+        real_publish_replace = os.replace
+        first_target = project / interrupted_outputs[0]
+
+        def stop_after_first_publish(
+            source: str | Path, target: str | Path, **kwargs: Any
+        ) -> None:
+            real_publish_replace(source, target, **kwargs)
+            if Path(target) == first_target:
+                raise SimulatedProcessStop()
+
+        try:
+            with patch("production_tool.os.replace", side_effect=stop_after_first_publish):
+                _publish_outputs(
+                    project,
+                    list(zip(interrupted_outputs, interrupted_sources)),
+                    overwrite=True,
+                    job_id=interrupted_job_id,
+                    run_id=interrupted_run_id,
+                )
+        except SimulatedProcessStop:
+            pass
+        else:
+            raise AssertionError("publication interruption fixture did not stop mid-publish")
+        require(
+            (project / interrupted_outputs[0]).read_bytes() == b"replacement-version"
+            and (project / interrupted_outputs[1]).read_bytes() == b"previous-version",
+            "crash fixture did not leave the expected partial output state",
+        )
+        try:
+            recover_interrupted_run(
+                project,
+                job_id=interrupted_job_id,
+                run_id=interrupted_run_id,
+                confirm_stopped=True,
+            )
+        except ValueError as exc:
+            require("process is still running" in str(exc), "active run recovery was not refused")
+        else:
+            raise AssertionError("recovery acted while the recorded process was alive")
+        interrupted_run["process_id"] = 0
+        _write_run(project, interrupted_job_id, interrupted_run)
+        (project / interrupted_outputs[1]).write_bytes(b"external-change")
+        try:
+            recover_interrupted_run(
+                project,
+                job_id=interrupted_job_id,
+                run_id=interrupted_run_id,
+                confirm_stopped=True,
+            )
+        except ValueError as exc:
+            require("manual review required" in str(exc), "unexpected rollback conflict")
+        else:
+            raise AssertionError("recovery overwrote a concurrent output change")
+        require(
+            (project / interrupted_outputs[0]).read_bytes() == b"replacement-version"
+            and (project / interrupted_outputs[1]).read_bytes() == b"external-change",
+            "conflicted recovery modified output files before preflight completed",
+        )
+        (project / interrupted_outputs[1]).write_bytes(b"previous-version")
+        try:
+            recover_interrupted_run(
+                project,
+                job_id=interrupted_job_id,
+                run_id=interrupted_run_id,
+                confirm_stopped=False,
+            )
+        except ValueError as exc:
+            require("--confirm-stopped" in str(exc), "recovery omitted stopped-process gate")
+        else:
+            raise AssertionError("recovery did not require stopped-process confirmation")
+        recovery = recover_interrupted_run(
+            project,
+            job_id=interrupted_job_id,
+            run_id=interrupted_run_id,
+            confirm_stopped=True,
+        )
+        require(
+            recovery["state"] == "failed" and recovery["outputs_restored"] is True,
+            "interrupted publication recovery did not report the restored state",
+        )
+        require(
+            all((project / output).read_bytes() == b"previous-version" for output in interrupted_outputs),
+            "interrupted publication recovery failed to restore the prior output set",
+        )
+        require(
+            not list((project / "dist/EP001/partial").glob(".interrupted-*.png.*.bak"))
+            and not list((project / "dist/EP001/partial").glob(".interrupted-*.png.*.tmp")),
+            "interrupted publication recovery left staging or backup files",
+        )
+        require(
+            _read_run_history(project, interrupted_job_id)[0]["status"] == "failed",
+            "recovered publication remained a running attempt",
         )
 
         head_frame = project / "dist" / "EP001" / "video" / "parent-tail.png"

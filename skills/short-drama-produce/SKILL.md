@@ -19,7 +19,8 @@ license: MIT
 
 只在用户明确要求实际生成后，从当前 `图片提示词.md`、`分镜.md` 或 `视频提示词.md` 中
 取出本次提示词，建立一个有边界的运行 job。creator-first job 的 `source` 必须指向拥有这条提示词的
-当前 Markdown，`source_entry` 必须点名对应的 `IMG-*` 或 `MOTION-*` 二级标题。存在真实参考图时，
+当前 Markdown，image/video job 的 `source_entry` 必须点名对应的 `IMG-*` 或 `MOTION-*` 二级标题。TTS job
+必须从当前集 `voice-record-sheet.jsonl` 选择唯一 `VLINE-*`，并让 `prompt` 与该行台词逐字相同。存在真实参考图时，
 还必须逐张填写 `reference_bindings` 的槽位、顺序、路径、中文名、用途以及允许/禁止控制范围；
 `references` 可以省略并由绑定顺序生成，也可以作为相同顺序的显式镜像。输出放在
 `dist/<EP>/`；这个 job 是生产工具的临时输入，不是第六份创作文档：
@@ -37,7 +38,7 @@ python3 {技能目录}/scripts/production_tool.py prepare <project> --job <临�
 1. 建立一个有边界的 job：一种 modality、明确数量、完整 prompt/spec、参考文件、参数、输出路径和 adapter profile。
 2. 运行 `prepare`，把返回的完整预览展示给创作者，尤其是数量、prompt、source entry、
    reference bindings、references、outputs、overwrite 与 adapter。creator-first job 会在这一步机械核对
-   所选标题里的可复制提示词，以及参考图槽位、顺序、路径、中文名和控制边界；任一漂移都 fail closed。
+   所选标题里的可复制提示词、所选 VLINE 与剧本投影，以及参考图槽位、顺序、路径、中文名和控制边界；任一漂移都 fail closed。
 3. 等创作者在**看到这份预览之后**明确确认。只有明确同意这项当前任务，才运行 `confirm`；
    “继续”“都做完”“预算没问题”、上游内容已接受或之前确认过另一版，都不算本次生产确认。
 4. 运行 `run`。它会在启动 adapter 前消费一次确认；成功或失败后再次执行都必须重新确认，
@@ -49,9 +50,10 @@ job、prompt、参数、输出路径或直接输入任一变化，旧确认立�
 `分镜.md` 的「输入参考图」路径只是创作阶段的可读依据与使用意图，不是生产输入快照。进入生产时，
 creator-first job 必须从 `图片提示词.md` 或 `视频提示词.md` 的对应条目建立绑定；`prepare` 展示的
 `reference_bindings`、`references` 与已确认 job 才是本次 adapter 实际读取哪些文件字节、各自允许
-影响什么的权威。非 creator 的结构化规格可不填 `source_entry`/`reference_bindings`，继续只使用显式
-`references`；但新的 image/video job 只要 `source` 指向 canonical `图片提示词.md` 或
-`视频提示词.md` 就强制使用对应 selector，不能靠省略字段降级绕过。升级前已经 prepare 并落盘的
+影响什么的权威。非 creator 的结构化 image/video/music job 可不填 `source_entry`/`reference_bindings`，
+继续只使用显式 `references`；但新的 image/video job 只要 `source` 指向 canonical `图片提示词.md` 或
+`视频提示词.md` 就强制使用对应 selector，新的 TTS job 必须绑定一条 VLINE，不能靠省略字段降级绕过。
+升级前已经 prepare 并落盘的
 旧 job 仍可按原指纹读取。
 新生产结果不自动回填或刷新分镜；需要把它改为后续输入时，由分镜 owner 修订文档，再建立新 job
 并重新预览、确认。
@@ -70,6 +72,7 @@ python3 <本技能目录>/scripts/production_tool.py run <project> --job-id <id>
 python3 <本技能目录>/scripts/production_tool.py status <project> --job-id <id>
 python3 <本技能目录>/scripts/production_tool.py rerun <project> --shot <SHOT-ID>
 python3 <本技能目录>/scripts/production_tool.py audit <project>
+python3 <本技能目录>/scripts/production_tool.py recover <project> --job-id <id> --run-id <run-id> --confirm-stopped
 python3 <本技能目录>/scripts/dag_scheduler.py <project>/episodes/<EP>/分镜.md
 ```
 
@@ -90,7 +93,15 @@ python3 <本技能目录>/scripts/dag_scheduler.py <project>/episodes/<EP>/分�
 `prepare` 只验证并预览，不生产。`confirm` 只保存与当前 job 指纹绑定的一次性确认。
 `run` 才启动 adapter。`audit` 只对账本地任务历史、失败后恢复、重复内容尝试和当前输出字节，
 不会调用供应商，也不把技术成功、文件存在或哈希一致写成媒体质量结论。同一 job 存在未决
-`running` attempt 时禁止重新 prepare、confirm 或 run；先等待完成或排查遗留 attempt。
+`running` attempt 时禁止重新 prepare、confirm 或 run；先等待完成，或确认原生产进程已停止后恢复。
+
+如果进程在发布输出时被强制中断，`audit` 会报告 `publication_recovery_pending`。先根据 job/run ID
+检查原进程确已停止，再执行 `recover`；它会校验目标、暂存文件和备份，只在文件字节符合恢复日志时
+回滚部分发布，遇到不一致就停止并要求人工检查。没有发布日志的遗留 `running_attempt` 也可用同一命令
+结清运行状态。若运行记录已是 `succeeded`，恢复命令只完成残留备份/暂存文件清理。
+
+进程被中断时，远端供应商是否已完成任务可能无法确定；恢复不会再次调用供应商，也不会自动重试。
+先检查供应商任务状态和费用，再创建新 job 并重新确认，避免重复生产和重复扣费。
 
 `rerun` 是单镜粒度授权的落点：它只重新 `prepare` 引用了指定镜头的 job，刷新该镜头的指纹并
 作废它的旧确认，其他镜头已经确认过的状态不受影响。`--shot` 接受完整 ID（`SHOT-EP001-003`），
@@ -102,8 +113,10 @@ python3 <本技能目录>/scripts/dag_scheduler.py <project>/episodes/<EP>/分�
   creator-first job 使用 `source_entry` 锁定这一条。
 - **video**：读取 `视频提示词.md` 的当前 `MOTION-*` 可复制正文，并核对 `分镜.md` 中对应镜头、
   冻结关键帧、时长与画幅；creator-first job 使用 `source_entry` 锁定这一条。
-- **tts**：从 `剧本.md` 读取原句与表演要求，声音参考由用户或现有媒体明确提供。不得在生产 job
-  中改词，也不为 TTS 新建第六份创作文档。
+- **tts**：从 `voice-record-sheet.jsonl` 选择 `VLINE-*`，其台词经 voice-sheet checker 逐字投影自
+  当前剧本。`prompt` 必须与台词一致；配音本、剧本索引和剧本都纳入确认指纹及输入快照；说话人、处境、tactic、
+  发音注记和声线设置留在已确认参数/输入快照里。
+  声音参考由用户或现有媒体明确提供。不得在生产 job 中改词，也不为 TTS 新建第六份创作文档。
 - **music**：读取 `视频提示词.md` 中创作者已确认的时间线音乐章节；主题曲使用已确认歌词，纯配乐
   不携带歌词。供应商不能精确承诺时长时，生成源音轨后仍由剪辑按文档里的混音意图完成落点、循环、
   淡入淡出和对白 ducking。

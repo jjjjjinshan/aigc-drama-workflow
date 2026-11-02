@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import ctypes
 import hashlib
 import json
 import os
@@ -22,6 +23,7 @@ import sys
 import tempfile
 import uuid
 from collections.abc import Iterator, Mapping
+from ctypes import wintypes
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path, PurePosixPath
@@ -57,6 +59,8 @@ PROJECT_CONTENT_DIRECTORIES = frozenset(
 PRODUCTION_ROOT = Path(".short-drama/production")
 JOB_SCHEMA = "1.0"
 JOB_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
+RUN_ID_RE = re.compile(r"\d{8}T\d{6}-[0-9a-f]{8}")
+PUBLICATION_SCHEMA = "1.0"
 MAX_JOB_BYTES = 256 * 1024
 MAX_RUN_RECORD_BYTES = 256 * 1024
 MAX_ADAPTER_RESPONSE_BYTES = 1024 * 1024
@@ -154,6 +158,8 @@ CREATOR_SOURCE_NAMES = {
 
 REF_SLOT_RE = re.compile(r"REF-[A-Z0-9][A-Z0-9-]{0,79}")
 SOURCE_ENTRY_RE = re.compile(r"[A-Z][A-Z0-9-]{1,99}")
+VOICE_SHEET_PATH_RE = re.compile(r"^episodes/(EP[0-9]{3,})/voice-record-sheet\.jsonl$")
+VOICE_LINE_ID_RE = re.compile(r"^VLINE-(EP[0-9]{3,})-[A-Z0-9-]+$")
 REFERENCE_SUFFIX_RE = r"(?:png|jpe?g|webp)"
 REFERENCE_LINE_RE = re.compile(
     rf"(REF-[A-Z0-9][A-Z0-9-]{{0,79}})（顺序：([1-9]\d*)）· "
@@ -262,7 +268,7 @@ def _project_file(root: Path, relative: str, *, create_parent: bool = False) -> 
             current.mkdir()
     if target.exists() and (target.is_symlink() or not target.is_file()):
         raise ValueError(f"unsafe project file: {relative}")
-    if not target.parent.resolve().is_relative_to(root):
+    if not target.parent.resolve().is_relative_to(root.resolve()):
         raise ValueError(f"path escapes project root: {relative}")
     return target
 
@@ -323,7 +329,7 @@ def _open_project_input(root: Path, relative: str) -> Iterator[BinaryIO]:
             raise FileNotFoundError(f"job input is missing: {relative}") from exc
         if _is_link_or_reparse(details):
             raise ValueError(f"unsafe job input path: {relative}")
-    if not path.resolve().is_relative_to(root):
+    if not path.resolve().is_relative_to(root.resolve()):
         raise ValueError(f"job input escapes project root: {relative}")
     before = path.stat(follow_symlinks=False)
     if not stat.S_ISREG(before.st_mode):
@@ -746,6 +752,85 @@ def _canonical_creator_source_modality(source: str | None) -> str | None:
     return CREATOR_SOURCE_NAMES.get(path.name)
 
 
+def _verify_voice_line_source(
+    root: Path, *, source: str, source_entry: str, prompt: str
+) -> dict[str, str]:
+    path_match = VOICE_SHEET_PATH_RE.fullmatch(source)
+    line_match = VOICE_LINE_ID_RE.fullmatch(source_entry)
+    if path_match is None or line_match is None or path_match.group(1) != line_match.group(1):
+        raise ValueError("TTS source_entry must select a line in its episode voice sheet")
+    episode_id = path_match.group(1)
+    index_relative = f"episodes/{episode_id}/screenplay-index.jsonl"
+    screenplay_relative = f"episodes/{episode_id}/剧本.md"
+
+    def read_input(relative: str) -> bytes:
+        with _open_project_input(root, relative) as handle:
+            content = handle.read(MAX_INPUT_BYTES + 1)
+        if len(content) > MAX_INPUT_BYTES:
+            raise ValueError(f"voice projection input is too large: {relative}")
+        return content
+
+    sheet_bytes = read_input(source)
+    index_bytes = read_input(index_relative)
+    screenplay_bytes = read_input(screenplay_relative)
+    if len(sheet_bytes) + len(index_bytes) + len(screenplay_bytes) > MAX_TOTAL_INPUT_BYTES:
+        raise ValueError("voice projection inputs exceed the total size limit")
+    checker = Path(__file__).resolve().parents[2] / "short-drama-write" / "scripts" / "voice_sheet_check.py"
+    if not checker.is_file():
+        raise ValueError("voice sheet checker is unavailable")
+    with tempfile.TemporaryDirectory(prefix="short-drama-voice-check-") as directory:
+        snapshot = Path(directory)
+        sheet = snapshot / "voice-record-sheet.jsonl"
+        index = snapshot / "screenplay-index.jsonl"
+        screenplay = snapshot / "剧本.md"
+        sheet.write_bytes(sheet_bytes)
+        index.write_bytes(index_bytes)
+        screenplay.write_bytes(screenplay_bytes)
+        try:
+            checked = subprocess.run(
+                [sys.executable, str(checker), str(sheet), "--index", str(index), "--screenplay", str(screenplay)],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise ValueError("voice sheet projection check could not run") from exc
+    if checked.returncode != 0:
+        raise ValueError("voice sheet does not match the current screenplay")
+    try:
+        result = json.loads(checked.stdout)
+        sheet_text = sheet_bytes.decode("utf-8")
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("voice sheet is not valid UTF-8 JSONL") from exc
+    if not isinstance(result, Mapping) or result.get("status") != "pass":
+        raise ValueError("voice sheet projection check failed")
+    selected: Mapping[str, Any] | None = None
+    seen: set[str] = set()
+    for number, raw_line in enumerate(sheet_text.splitlines(), 1):
+        if not raw_line.strip():
+            continue
+        try:
+            record = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"voice record sheet line {number} is invalid JSON") from exc
+        if not isinstance(record, Mapping) or record.get("record_type") == "sources":
+            continue
+        line_id = record.get("line_id")
+        if not isinstance(line_id, str):
+            raise ValueError(f"voice record sheet line {number} has no line_id")
+        if line_id in seen:
+            raise ValueError(f"voice line ID is duplicated: {line_id}")
+        seen.add(line_id)
+        if line_id == source_entry:
+            selected = record
+    line_text = selected.get("line_text") if selected is not None else None
+    if not isinstance(line_text, str) or not line_text.strip() or line_text != prompt:
+        raise ValueError("TTS prompt must exactly match its selected voice-sheet line")
+    return {
+        source: sha256_bytes(sheet_bytes),
+        index_relative: sha256_bytes(index_bytes),
+        screenplay_relative: sha256_bytes(screenplay_bytes),
+    }
+
+
 def _normalize_reference_bindings(value: object) -> list[dict[str, Any]]:
     if value is None:
         return []
@@ -1041,7 +1126,14 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     if source_entry is not None and source is None:
         raise ValueError("source_entry requires source")
     creator_source_modality = _canonical_creator_source_modality(source)
-    if creator_source_modality == modality and source_entry is None:
+    verified_voice_source_hashes: dict[str, str] | None = None
+    if modality == "tts":
+        if source is None or source_entry is None:
+            raise ValueError("TTS jobs must select a VLINE-* entry from the episode voice sheet")
+        verified_voice_source_hashes = _verify_voice_line_source(
+            root, source=source, source_entry=source_entry, prompt=prompt
+        )
+    elif creator_source_modality == modality and source_entry is None:
         raise ValueError("creator Markdown source requires source_entry")
     if creator_source_modality is not None and modality != creator_source_modality and not (
         creator_source_modality == "video"
@@ -1049,16 +1141,17 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
         and source_entry is None
     ):
         raise ValueError("creator Markdown source does not match the job modality")
-    expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
-        str(modality)
-    )
-    if source_entry is not None and (
-        expected_entry_prefix is None
-        or not source_entry.startswith(expected_entry_prefix)
-    ):
-        raise ValueError("source_entry does not match the job modality")
-    if source_entry is not None and creator_source_modality != modality:
-        raise ValueError("source_entry requires the canonical creator Markdown path")
+    if modality != "tts":
+        expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
+            str(modality)
+        )
+        if source_entry is not None and (
+            expected_entry_prefix is None
+            or not source_entry.startswith(expected_entry_prefix)
+        ):
+            raise ValueError("source_entry does not match the job modality")
+        if source_entry is not None and creator_source_modality != modality:
+            raise ValueError("source_entry requires the canonical creator Markdown path")
     references_supplied = "references" in raw
     supplied_references = [
         _relative_path(path)
@@ -1073,7 +1166,7 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     ):
         raise ValueError("references must match reference_bindings order")
     references = binding_references if reference_bindings else supplied_references
-    if source_entry is not None:
+    if source_entry is not None and modality != "tts":
         _verify_markdown_source(
             root,
             source=str(source),
@@ -1099,11 +1192,20 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     if len(_canonical(parameters)) > 64 * 1024:
         raise ValueError("job parameters are too large")
     input_paths = ([source] if source is not None else []) + references
+    if verified_voice_source_hashes is not None:
+        input_paths.extend(
+            path for path in verified_voice_source_hashes if path not in input_paths
+        )
     if frame_input["head_frame"] is not None:
         input_paths.append(frame_input["head_frame"])
     if len(set(input_paths)) != len(input_paths):
         raise ValueError("source and references must be unique")
     input_hashes = {path: _hash_project_file(root, path) for path in input_paths}
+    if verified_voice_source_hashes is not None and any(
+        input_hashes.get(path) != digest
+        for path, digest in verified_voice_source_hashes.items()
+    ):
+        raise ValueError("voice projection inputs changed during TTS validation; prepare again")
     execution = {
         "schema_version": JOB_SCHEMA,
         "job_id": job_id,
@@ -1196,17 +1298,28 @@ def _validate_stored_job(
         or source is None
     ):
         raise ValueError("stored job source entry is invalid")
-    expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
-        str(modality)
-    )
-    if source_entry is not None and (
-        expected_entry_prefix is None
-        or not source_entry.startswith(expected_entry_prefix)
-    ):
-        raise ValueError("stored job source entry has the wrong modality")
     creator_source_modality = _canonical_creator_source_modality(
         str(source) if source is not None else None
     )
+    verified_voice_source_hashes: dict[str, str] | None = None
+    if modality == "tts":
+        if source_entry is None:
+            if not legacy:
+                raise ValueError("stored TTS job has no selected voice line")
+        else:
+            verified_voice_source_hashes = _verify_voice_line_source(
+                root, source=str(source), source_entry=source_entry,
+                prompt=str(document.get("prompt", "")),
+            )
+    else:
+        expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
+            str(modality)
+        )
+        if source_entry is not None and (
+            expected_entry_prefix is None
+            or not source_entry.startswith(expected_entry_prefix)
+        ):
+            raise ValueError("stored job source entry has the wrong modality")
     if not legacy and creator_source_modality == modality and source_entry is None:
         raise ValueError("stored creator Markdown job has no source entry")
     if creator_source_modality is not None and modality != creator_source_modality and not (
@@ -1215,7 +1328,7 @@ def _validate_stored_job(
         and source_entry is None
     ):
         raise ValueError("stored creator Markdown source has the wrong modality")
-    if source_entry is not None and creator_source_modality != modality:
+    if modality != "tts" and source_entry is not None and creator_source_modality != modality:
         raise ValueError("stored job creator source path is invalid")
     references = _string_list(
         document.get("references"), label="stored references", limit=16
@@ -1249,6 +1362,10 @@ def _validate_stored_job(
     if not isinstance(document.get("overwrite"), bool):
         raise ValueError("stored job overwrite flag is invalid")
     input_paths = ([source] if source is not None else []) + references
+    if verified_voice_source_hashes is not None:
+        input_paths.extend(
+            path for path in verified_voice_source_hashes if path not in input_paths
+        )
     if frame_input["head_frame"] is not None:
         input_paths.append(frame_input["head_frame"])
     if len(input_paths) != len(set(input_paths)):
@@ -1261,6 +1378,11 @@ def _validate_stored_job(
         for digest in inputs.values()
     ):
         raise ValueError("stored job input hash is invalid")
+    if verified_voice_source_hashes is not None and any(
+        inputs.get(path) != digest
+        for path, digest in verified_voice_source_hashes.items()
+    ):
+        raise ConfirmationRequiredError("stored TTS voice projection inputs changed after validation")
     fingerprint = document.get("fingerprint")
     execution_keys = (
         LEGACY_STORED_EXECUTION_KEYS
@@ -1524,9 +1646,7 @@ def _validate_adapter_outputs(
     return result
 
 
-def _copy_output(
-    source: Path, target: Path, *, overwrite: bool
-) -> tuple[str, int]:
+def _stage_output(source: Path, target: Path) -> tuple[Path, str, int]:
     temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
     target.parent.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256()
@@ -1550,10 +1670,9 @@ def _copy_output(
             raise AdapterError("adapter output changed while opening; confirmation was consumed")
         if opened.st_size > MAX_OUTPUT_BYTES:
             raise AdapterError("adapter output file is too large; confirmation was consumed")
-        with os.fdopen(descriptor, "rb", closefd=True) as incoming, temporary.open(
-            "xb"
-        ) as outgoing:
-            descriptor = -1
+        incoming = os.fdopen(descriptor, "rb", closefd=True)
+        descriptor = -1
+        with incoming, temporary.open("xb") as outgoing:
             for chunk in iter(lambda: incoming.read(1024 * 1024), b""):
                 size += len(chunk)
                 if size > MAX_OUTPUT_BYTES:
@@ -1562,24 +1681,337 @@ def _copy_output(
                 outgoing.write(chunk)
             outgoing.flush()
             os.fsync(outgoing.fileno())
-        if overwrite:
-            os.replace(temporary, target)
-        else:
-            try:
-                os.link(temporary, target, follow_symlinks=False)
-            except FileExistsError as exc:
-                raise FileExistsError(
-                    f"output appeared while production was running: {target.name}"
-                ) from exc
-            temporary.unlink()
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
     finally:
         if descriptor >= 0:
             os.close(descriptor)
-        try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
-    return digest.hexdigest(), size
+    return temporary, digest.hexdigest(), size
+
+
+def _publication_location(job_id: str, run_id: str) -> tuple[tuple[str, ...], str]:
+    if JOB_ID_RE.fullmatch(job_id) is None or RUN_ID_RE.fullmatch(run_id) is None:
+        raise ValueError("production job or run identifier is invalid")
+    return ("publications", _job_key(job_id)), f"{run_id}.json"
+
+
+def _write_publication_journal(
+    root: Path, job_id: str, run_id: str, entries: list[dict[str, Any]]
+) -> None:
+    directory, name = _publication_location(job_id, run_id)
+    _metadata_atomic_json(
+        root,
+        directory,
+        name,
+        {
+            "schema_version": PUBLICATION_SCHEMA,
+            "job_id": job_id,
+            "run_id": run_id,
+            "entries": entries,
+        },
+    )
+
+
+def _read_publication_journal(
+    root: Path, job_id: str, run_id: str
+) -> dict[str, Any] | None:
+    directory, name = _publication_location(job_id, run_id)
+    try:
+        document = _metadata_read_json(
+            root, directory, name, maximum=MAX_RUN_RECORD_BYTES
+        )
+    except FileNotFoundError:
+        return None
+    if (
+        not isinstance(document, dict)
+        or document.get("schema_version") != PUBLICATION_SCHEMA
+        or document.get("job_id") != job_id
+        or document.get("run_id") != run_id
+        or not isinstance(document.get("entries"), list)
+        or not document["entries"]
+    ):
+        raise ValueError("production publication journal is invalid")
+    return document
+
+
+def _publication_path_digest(root: Path, relative: str) -> tuple[str, int] | None:
+    path = _project_file(root, relative)
+    try:
+        details = path.lstat()
+    except FileNotFoundError:
+        return None
+    if _is_link_or_reparse(details) or not stat.S_ISREG(details.st_mode):
+        raise ValueError("production publication path is unsafe")
+    return _hash_production_output(root, relative)
+
+
+def _validated_publication_entries(
+    root: Path, document: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    raw_entries = document.get("entries")
+    if not isinstance(raw_entries, list) or len(raw_entries) > 256:
+        raise ValueError("production publication journal entries are invalid")
+    entries: list[dict[str, Any]] = []
+    used: set[str] = set()
+    digest_pattern = re.compile(r"[0-9a-f]{64}")
+    for raw in raw_entries:
+        if not isinstance(raw, Mapping):
+            raise ValueError("production publication journal entry is invalid")
+        target = _relative_path(raw.get("path"), output=True)
+        temporary = _relative_path(raw.get("temporary"), output=True)
+        original_exists = raw.get("original_exists")
+        original_digest = raw.get("original_sha256")
+        new_digest = raw.get("new_sha256")
+        backup_value = raw.get("backup")
+        backup = (
+            _relative_path(backup_value, output=True)
+            if backup_value is not None
+            else None
+        )
+        target_path = PurePosixPath(target)
+        if (
+            not isinstance(original_exists, bool)
+            or not isinstance(new_digest, str)
+            or digest_pattern.fullmatch(new_digest) is None
+            or PurePosixPath(temporary).parent != target_path.parent
+            or re.fullmatch(rf"\.{re.escape(target_path.name)}\.[0-9a-f]{{32}}\.tmp", PurePosixPath(temporary).name) is None
+            or (original_exists and (
+                not isinstance(original_digest, str)
+                or digest_pattern.fullmatch(original_digest) is None
+                or backup is None
+            ))
+            or (not original_exists and (original_digest is not None or backup is not None))
+            or (backup is not None and (
+                PurePosixPath(backup).parent != target_path.parent
+                or re.fullmatch(rf"\.{re.escape(target_path.name)}\.[0-9a-f]{{32}}\.bak", PurePosixPath(backup).name) is None
+            ))
+        ):
+            raise ValueError("production publication journal entry is invalid")
+        paths = {target, temporary} | ({backup} if backup is not None else set())
+        if used.intersection(paths):
+            raise ValueError("production publication journal paths overlap")
+        used.update(paths)
+        entries.append(
+            {
+                "path": target,
+                "temporary": temporary,
+                "original_exists": original_exists,
+                "original_sha256": original_digest,
+                "new_sha256": new_digest,
+                "backup": backup,
+            }
+        )
+    return entries
+
+
+def _rollback_publication_journal(
+    root: Path, job_id: str, run_id: str, document: Mapping[str, Any]
+) -> None:
+    entries = _validated_publication_entries(root, document)
+    states: list[tuple[dict[str, Any], tuple[str, int] | None, tuple[str, int] | None, tuple[str, int] | None]] = []
+    for entry in entries:
+        target_state = _publication_path_digest(root, entry["path"])
+        temporary_state = _publication_path_digest(root, entry["temporary"])
+        backup = entry["backup"]
+        backup_state = _publication_path_digest(root, backup) if backup else None
+        target_digest = target_state[0] if target_state else None
+        backup_digest = backup_state[0] if backup_state else None
+        temporary_digest = temporary_state[0] if temporary_state else None
+        allowed_targets = {entry["new_sha256"]}
+        if entry["original_exists"]:
+            allowed_targets.add(entry["original_sha256"])
+            if target_state is None:
+                allowed_targets.add(None)
+            if backup_digest not in {None, entry["original_sha256"]}:
+                raise ValueError("production rollback backup changed; manual review required")
+            if target_digest in {entry["new_sha256"], None} and backup_digest != entry["original_sha256"]:
+                raise ValueError("production rollback backup is missing; manual review required")
+        else:
+            allowed_targets.add(None)
+            if backup_state is not None:
+                raise ValueError("unexpected production rollback backup; manual review required")
+        if target_digest not in allowed_targets:
+            raise ValueError("production output changed during interrupted publish; manual review required")
+        if temporary_digest not in {None, entry["new_sha256"]}:
+            raise ValueError("staged production output changed; manual review required")
+        states.append((entry, target_state, temporary_state, backup_state))
+
+    for entry, target_state, temporary_state, backup_state in reversed(states):
+        target = _project_file(root, entry["path"])
+        backup = _project_file(root, entry["backup"]) if entry["backup"] else None
+        target_digest = target_state[0] if target_state else None
+        if entry["original_exists"]:
+            if backup_state is not None:
+                if target_digest != entry["original_sha256"]:
+                    os.replace(backup, target)
+                else:
+                    backup.unlink()
+        elif target_digest == entry["new_sha256"]:
+            target.unlink()
+        if temporary_state is not None:
+            _project_file(root, entry["temporary"]).unlink()
+    directory, name = _publication_location(job_id, run_id)
+    _metadata_unlink(root, directory, name)
+
+
+def _finish_publication_journal(
+    root: Path, job_id: str, run_id: str, document: Mapping[str, Any]
+) -> None:
+    entries = _validated_publication_entries(root, document)
+    for entry in entries:
+        target_state = _publication_path_digest(root, entry["path"])
+        if target_state is None or target_state[0] != entry["new_sha256"]:
+            raise ValueError("published production output changed before commit")
+        for path, expected in (
+            (entry["temporary"], entry["new_sha256"]),
+            (entry["backup"], entry["original_sha256"]),
+        ):
+            if path is None:
+                continue
+            state = _publication_path_digest(root, path)
+            if state is not None:
+                if state[0] != expected:
+                    raise ValueError("production publication cleanup path changed")
+                _project_file(root, path).unlink()
+    directory, name = _publication_location(job_id, run_id)
+    _metadata_unlink(root, directory, name)
+
+
+def _publish_outputs(
+    root: Path,
+    entries: list[tuple[str, Path]],
+    *,
+    overwrite: bool,
+    job_id: str | None = None,
+    run_id: str | None = None,
+) -> list[dict[str, Any]]:
+    if (job_id is None) != (run_id is None):
+        raise ValueError("publication journal requires both job_id and run_id")
+    staged: list[tuple[Path, Path, str, int]] = []
+    backups: dict[Path, Path | None] = {}
+    published: list[Path] = []
+    journal: dict[str, Any] | None = None
+    journal_written = False
+    rollback_complete = False
+    try:
+        for relative, source in entries:
+            target = _project_file(root, relative, create_parent=True)
+            temporary, digest, size = _stage_output(source, target)
+            staged.append((target, temporary, digest, size))
+
+        if job_id is not None and run_id is not None:
+            journal_entries: list[dict[str, Any]] = []
+            for (relative, _), (target, temporary, digest, _) in zip(entries, staged):
+                original_exists = False
+                original_digest: str | None = None
+                backup: Path | None = None
+                try:
+                    details = target.lstat()
+                except FileNotFoundError:
+                    pass
+                else:
+                    if _is_link_or_reparse(details) or not stat.S_ISREG(details.st_mode):
+                        raise AdapterError("existing production output is unsafe")
+                    if not overwrite:
+                        raise FileExistsError(
+                            f"output appeared while production was running: {target.name}"
+                        )
+                    original_exists = True
+                    original_digest, _ = _hash_production_output(root, relative)
+                    backup = target.with_name(f".{target.name}.{uuid.uuid4().hex}.bak")
+                journal_entries.append(
+                    {
+                        "path": relative,
+                        "temporary": temporary.relative_to(root).as_posix(),
+                        "original_exists": original_exists,
+                        "original_sha256": original_digest,
+                        "new_sha256": digest,
+                        "backup": backup.relative_to(root).as_posix() if backup else None,
+                    }
+                )
+                backups[target] = backup
+            journal = {
+                "schema_version": PUBLICATION_SCHEMA,
+                "job_id": job_id,
+                "run_id": run_id,
+                "entries": journal_entries,
+            }
+            _write_publication_journal(root, job_id, run_id, journal_entries)
+            journal_written = True
+
+        if overwrite:
+            for target, _, _, _ in staged:
+                if journal_written:
+                    backup = backups.get(target)
+                else:
+                    backup = None
+                    try:
+                        details = target.lstat()
+                    except FileNotFoundError:
+                        pass
+                    else:
+                        if _is_link_or_reparse(details) or not stat.S_ISREG(details.st_mode):
+                            raise AdapterError("existing production output is unsafe")
+                        backup = target.with_name(f".{target.name}.{uuid.uuid4().hex}.bak")
+                    backups[target] = backup
+                if backup is not None:
+                    os.link(target, backup, follow_symlinks=False)
+
+        for target, temporary, _, _ in staged:
+            if overwrite:
+                os.replace(temporary, target)
+            else:
+                try:
+                    os.link(temporary, target, follow_symlinks=False)
+                except FileExistsError as exc:
+                    raise FileExistsError(
+                        f"output appeared while production was running: {target.name}"
+                    ) from exc
+            published.append(target)
+
+        return [
+            {
+                "path": relative,
+                "media_type": MEDIA_TYPES[PurePosixPath(relative).suffix.casefold()],
+                "bytes": size,
+                "sha256": digest,
+            }
+            for (relative, _), (_, _, digest, size) in zip(entries, staged)
+        ]
+    except Exception:
+        if journal_written and job_id is not None and run_id is not None and journal is not None:
+            try:
+                _rollback_publication_journal(root, job_id, run_id, journal)
+                rollback_complete = True
+            except Exception as exc:
+                raise AdapterError(
+                    "production output publication failed and rollback is pending; run recovery after the attempt stops"
+                ) from exc
+        else:
+            rollback_error: Exception | None = None
+            for target in reversed(published):
+                backup = backups.get(target)
+                try:
+                    if backup is None:
+                        target.unlink(missing_ok=True)
+                    else:
+                        os.replace(backup, target)
+                        backups[target] = None
+                except OSError as exc:
+                    rollback_error = rollback_error or exc
+            if rollback_error is not None:
+                raise AdapterError(
+                    "production output publication failed and rollback was incomplete; inspect output paths"
+                ) from rollback_error
+        raise
+    finally:
+        if not journal_written or rollback_complete:
+            for _, temporary, _, _ in staged:
+                temporary.unlink(missing_ok=True)
+            for backup in backups.values():
+                if backup is not None:
+                    backup.unlink(missing_ok=True)
 
 
 def _latest_run(root: Path, job_id: str) -> dict[str, Any] | None:
@@ -1668,6 +2100,84 @@ def _write_run(root: Path, job_id: str, run: Mapping[str, Any]) -> None:
     )
 
 
+def _process_is_running(process_id: object) -> bool:
+    if not isinstance(process_id, int) or isinstance(process_id, bool) or process_id <= 0:
+        return False
+    if os.name == "nt":
+        if process_id > 0xFFFFFFFF:
+            return False
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        kernel32.WaitForSingleObject.restype = wintypes.DWORD
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        handle = kernel32.OpenProcess(0x00100000, False, process_id)
+        if not handle:
+            return ctypes.get_last_error() != 87
+        try:
+            return kernel32.WaitForSingleObject(handle, 0) != 0
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
+        os.kill(process_id, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return True
+    return True
+
+
+def recover_interrupted_run(
+    root: Path, *, job_id: str, run_id: str, confirm_stopped: bool
+) -> dict[str, Any]:
+    root = find_project(root)
+    if JOB_ID_RE.fullmatch(job_id) is None or RUN_ID_RE.fullmatch(run_id) is None:
+        raise ValueError("production job or run identifier is invalid")
+    if not confirm_stopped:
+        raise ValueError("verify the original production process has stopped, then pass --confirm-stopped")
+    directory_parts, run_name = ("runs", _job_key(job_id)), f"{run_id}.json"
+    with _project_lock(root):
+        run = _metadata_read_json(
+            root, directory_parts, run_name, maximum=MAX_RUN_RECORD_BYTES
+        )
+        if (
+            not isinstance(run, dict)
+            or run.get("job_id") != job_id
+            or run.get("run_id") != run_id
+            or run.get("status") not in {"running", "failed", "succeeded"}
+        ):
+            raise ValueError("production run record is invalid")
+        journal = _read_publication_journal(root, job_id, run_id)
+        if run["status"] == "succeeded":
+            if journal is not None:
+                _finish_publication_journal(root, job_id, run_id, journal)
+            return {"job_id": job_id, "run_id": run_id, "state": "succeeded"}
+        if run["status"] == "running" and _process_is_running(run.get("process_id")):
+            raise ValueError("production process is still running; stop it before recovery")
+        if journal is not None:
+            _rollback_publication_journal(root, job_id, run_id, journal)
+        if run["status"] == "running":
+            run["status"] = "failed"
+            run["finished_at"] = utc_now()
+            run["error"] = {
+                "category": "interrupted",
+                "retryable": False,
+                "message": "run stopped before a terminal result; provider outcome may be unknown",
+            }
+            _write_run(root, job_id, run)
+        return {
+            "job_id": job_id,
+            "run_id": run_id,
+            "state": "failed",
+            "outputs_restored": journal is not None,
+            "provider_outcome": "unknown",
+        }
+
+
 def run_job(
     root: Path,
     *,
@@ -1735,6 +2245,7 @@ def run_job(
                 "status": "running",
                 "started_at": utc_now(),
                 "finished_at": None,
+                "process_id": os.getpid(),
                 "outputs": [],
             }
             _write_run(root, job_id, run)
@@ -1747,24 +2258,18 @@ def run_job(
                 "output_root": str(output_root),
             }
         )
+        publication_cleanup_pending = False
         try:
             response = _run_adapter(command, timeout, payload, root)
             adapter_outputs = _validate_adapter_outputs(job, response, output_root)
-            written: list[dict[str, Any]] = []
             with _project_lock(root):
-                for target_name, source in adapter_outputs:
-                    target = _project_file(root, target_name, create_parent=True)
-                    digest, size = _copy_output(
-                        source, target, overwrite=bool(job["overwrite"])
-                    )
-                    written.append(
-                        {
-                            "path": target_name,
-                            "media_type": MEDIA_TYPES[PurePosixPath(target_name).suffix.casefold()],
-                            "bytes": size,
-                            "sha256": digest,
-                        }
-                    )
+                written = _publish_outputs(
+                    root,
+                    adapter_outputs,
+                    overwrite=bool(job["overwrite"]),
+                    job_id=job_id,
+                    run_id=run_id,
+                )
                 run["status"] = "succeeded"
                 run["finished_at"] = utc_now()
                 run["outputs"] = written
@@ -1772,6 +2277,12 @@ def run_job(
                 if isinstance(provider_job_id, str) and len(provider_job_id) <= 200:
                     run["provider_job_id"] = provider_job_id
                 _write_run(root, job_id, run)
+                journal = _read_publication_journal(root, job_id, run_id)
+                if journal is not None:
+                    try:
+                        _finish_publication_journal(root, job_id, run_id, journal)
+                    except Exception:
+                        publication_cleanup_pending = True
         except Exception as exc:
             with _project_lock(root):
                 run["status"] = "failed"
@@ -1786,6 +2297,7 @@ def run_job(
         "state": "succeeded",
         "outputs": run["outputs"],
         "estimated_cost": cost_estimate,
+        "recovery_cleanup_pending": publication_cleanup_pending,
     }
 
 
@@ -1950,7 +2462,30 @@ def audit_project(root: Path) -> dict[str, Any]:
                         "code": "running_attempt",
                         "job_id": job_id,
                         "run_id": str(run["run_id"]),
-                        "action": "wait_or_investigate_running_attempt",
+                        "action": "verify_process_stopped_then_recover",
+                    }
+                )
+        for run in history:
+            run_id = str(run["run_id"])
+            try:
+                journal = _read_publication_journal(root, job_id, run_id)
+            except (OSError, ValueError, json.JSONDecodeError):
+                problems.append(
+                    {
+                        "code": "invalid_publication_journal",
+                        "job_id": job_id,
+                        "run_id": run_id,
+                        "action": "inspect_recovery_metadata",
+                    }
+                )
+                continue
+            if journal is not None:
+                problems.append(
+                    {
+                        "code": "publication_recovery_pending",
+                        "job_id": job_id,
+                        "run_id": run_id,
+                        "action": "verify_process_stopped_then_recover",
                     }
                 )
         fingerprints = [
@@ -2199,6 +2734,17 @@ def build_parser() -> argparse.ArgumentParser:
         "audit", help="Reconcile attempt history and current output bytes."
     )
     audit.add_argument("project")
+    recover = commands.add_parser(
+        "recover", help="Resolve a stopped run and roll back interrupted output publication."
+    )
+    recover.add_argument("project")
+    recover.add_argument("--job-id", required=True)
+    recover.add_argument("--run-id", required=True)
+    recover.add_argument(
+        "--confirm-stopped",
+        action="store_true",
+        help="confirm you verified the original production process has stopped",
+    )
     return parser
 
 
@@ -2221,6 +2767,13 @@ def main(argv: list[str] | None = None) -> int:
             result = job_status(Path(args.project), job_id=args.job_id)
         elif args.command == "rerun":
             result = rerun_shot(Path(args.project), shot=args.shot)
+        elif args.command == "recover":
+            result = recover_interrupted_run(
+                Path(args.project),
+                job_id=args.job_id,
+                run_id=args.run_id,
+                confirm_stopped=args.confirm_stopped,
+            )
         else:
             result = audit_project(Path(args.project))
         print(json.dumps(result, ensure_ascii=True, sort_keys=True))

@@ -1,0 +1,49 @@
+name: Validate workflow
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-selftests:
+    name: Offline self-tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Compile Python sources
+        run: python -m compileall -q adapters skills
+      - name: Run offline self-tests
+        env:
+          AIGC_DRAMA_SKIP_REAL_FFMPEG: "1"
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_count=0
+          while IFS= read -r -d '' test_file; do
+            echo "==> ${test_file}"
+            python "${test_file}"
+            test_count=$((test_count + 1))
+          done < <(find skills -type f -name selftest.py -print0 | sort -z)
+          if [[ "${test_count}" -eq 0 ]]; then
+            echo "No Skill self-tests were discovered" >&2
+            exit 1
+          fi
+          echo "Ran ${test_count} Skill self-tests"
+          python adapters/kling_adapter.py --selftest
