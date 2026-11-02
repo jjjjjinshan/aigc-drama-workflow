@@ -608,7 +608,7 @@ def _project_lock(root: Path) -> Iterator[None]:
                 dir_fd=directory_fd,
             )
             details = os.fstat(descriptor)
-            if not stat.S_ISREG(details.st_mode):
+            if not stat.S_ISREG(details.st_mode) or details.st_nlink > 1:
                 os.close(descriptor)
                 raise ValueError("production lock is unsafe")
             handle_context = os.fdopen(descriptor, "a+b", closefd=True)
@@ -620,15 +620,21 @@ def _project_lock(root: Path) -> Iterator[None]:
             except FileNotFoundError:
                 before = None
             else:
-                if _is_link_or_reparse(before) or not stat.S_ISREG(before.st_mode):
+                if (
+                    _is_link_or_reparse(before)
+                    or not stat.S_ISREG(before.st_mode)
+                    or before.st_nlink > 1
+                ):
                     raise ValueError("production lock is unsafe")
             handle_context = lock_path.open("a+b")
             opened = os.fstat(handle_context.fileno())
             after = lock_path.lstat()
             if (
                 not stat.S_ISREG(opened.st_mode)
+                or opened.st_nlink > 1
                 or _is_link_or_reparse(after)
                 or not stat.S_ISREG(after.st_mode)
+                or after.st_nlink > 1
                 or (opened.st_dev, opened.st_ino) != (after.st_dev, after.st_ino)
                 or (
                     before is not None
