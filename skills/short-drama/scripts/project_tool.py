@@ -1589,6 +1589,23 @@ def _artifact_for_path(state: Mapping[str, Any], relative: str) -> tuple[str, Ma
     return found[0]
 
 
+def assert_accepted_artifact(root: Path, artifact_path: str) -> dict[str, str]:
+    """Require one tracked output to have current creator acceptance or review."""
+
+    root = find_project(root)
+    relative = _validate_path_set(root, [artifact_path], label="acceptance check")[0]
+    with _project_lock(root):
+        state = _read_state(root)
+        artifact_id, record = _artifact_for_path(state, relative)
+        current = _artifact_state(root, record)
+        if current not in {"accepted", "approved"}:
+            raise PackageBlockedError(
+                f"artifact is not accepted and current: {relative} "
+                f"({artifact_id}: {current})"
+            )
+    return {"artifact_id": artifact_id, "path": relative, "state": current}
+
+
 def _replace_directory(source: Path, target: Path) -> None:
     backup = target.with_name(f".{target.name}.{uuid.uuid4().hex}.old")
     moved_old = False
@@ -2019,6 +2036,15 @@ def build_parser() -> argparse.ArgumentParser:
     status = commands.add_parser("status", help="Print a creator-safe project summary.")
     status.add_argument("path", nargs="?", default=".")
 
+    accepted = commands.add_parser(
+        "assert-accepted",
+        help="Require a tracked project artifact to be accepted and current.",
+    )
+    accepted.add_argument("path", help="Project root or a path inside the project.")
+    accepted.add_argument(
+        "--artifact-path", required=True, help="Project-relative artifact path."
+    )
+
     publish = commands.add_parser("publish", help="Atomically publish text/JSON outputs.")
     publish.add_argument("path")
     publish.add_argument("--owner", required=True)
@@ -2099,6 +2125,10 @@ def main(argv: list[str] | None = None) -> int:
             result = adopt_project(Path(args.path))
         elif args.command == "status":
             result = project_status(Path(args.path))
+        elif args.command == "assert-accepted":
+            result = assert_accepted_artifact(
+                Path(args.path), artifact_path=args.artifact_path
+            )
         elif args.command == "publish":
             root = find_project(Path(args.path))
             result = publish_candidate(
