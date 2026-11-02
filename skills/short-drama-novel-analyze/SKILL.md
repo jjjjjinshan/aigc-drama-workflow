@@ -200,7 +200,9 @@ python3 {技能目录}/scripts/novel_index.py coverage \
 - `adaptation-value.md`：哪些单元在竖屏短剧里能直接成立、哪些要换载体、哪些是纯文字快感
   （内心戏、叙述性诡计、长铺垫）在画面上无法兑现；制作负担落在哪里。
 - `episode-candidates.jsonl`：按**局部戏剧结果与精确交接**切出的候选集，不按章号或字数
-  平均切。每条带来源 span、承担的功能、以及未决项。
+  平均切。每条带章节范围、S2 情节点引用、承担的功能、以及未决项。完成后运行
+  `python3 {技能目录}/scripts/validate_episode_candidates.py 项目开发/source-analysis`
+  校验引用点是否存在且落在声明章节范围内。
 
 同时**回填快评**：S1 的哪几条判断被全量结果推翻了，写进 `adaptation-value.md` 的开头。
 一个抽样结论被证伪，比它被悄悄忘掉有用得多——下一本书的快评会因此更准。
