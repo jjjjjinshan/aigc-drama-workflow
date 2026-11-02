@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, BinaryIO
 
-MINIMUM_PYTHON = (3, 9)
+MINIMUM_PYTHON = (3, 10)
 if sys.version_info < MINIMUM_PYTHON:
     raise SystemExit(
         "short-drama-produce needs Python {}.{} or newer".format(*MINIMUM_PYTHON)

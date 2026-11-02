@@ -21,7 +21,7 @@ from provider_adapters import (
     compile_seedance_payload,
 )
 
-MINIMUM_PYTHON = (3, 9)
+MINIMUM_PYTHON = (3, 10)
 if sys.version_info < MINIMUM_PYTHON:
     raise SystemExit("selftest.py requires Python 3.9 or newer")
 
