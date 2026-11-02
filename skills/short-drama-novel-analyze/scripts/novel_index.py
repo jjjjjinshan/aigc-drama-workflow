@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import codecs
+import hashlib
 import json
 import os
 import re
@@ -393,6 +394,7 @@ def build_index(
         "source": {
             "artifact": source.name,
             "encoding": encoding,
+            "sha256": hashlib.sha256(raw).hexdigest(),
             "char_count": _visible_width(text),
             "line_count": len(lines),
         },
@@ -437,6 +439,17 @@ def verify_index(index_path: Path, source: Path) -> dict[str, Any]:
                 "index is missing its source record"
             ],
         }
+    expected_hash = source_record.get("sha256")
+    if "sha256" in source_record:
+        if (
+            not isinstance(expected_hash, str)
+            or re.fullmatch(r"[0-9a-f]{64}", expected_hash) is None
+        ):
+            problems.append(
+                "source sha256 must be a 64-character lowercase hexadecimal digest"
+            )
+        elif hashlib.sha256(raw).hexdigest() != expected_hash:
+            problems.append("source content hash does not match the indexed source")
     encoding = source_record.get("encoding", "utf-8")
     if not isinstance(encoding, str):
         return {"verified": False, "problems": ["source encoding must be a string"]}

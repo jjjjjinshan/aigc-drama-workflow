@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import tempfile
@@ -36,14 +37,48 @@ def main() -> int:
         index = build_index(source)
         require(index["chapter_count"] == 2, "chapter count")
         require(index["problems"] == [], "valid chapter index")
+        require(
+            index["source"]["sha256"] == hashlib.sha256(source.read_bytes()).hexdigest(),
+            "source content hash",
+        )
         index_path.write_text(json.dumps(index, ensure_ascii=False), encoding="utf-8")
         require(verify_index(index_path, source)["verified"] is True, "fresh index")
         require(sample_chapters(index_path, 2)["sampled_count"] == 2, "sample count")
 
         legacy_index = json.loads(index_path.read_text(encoding="utf-8"))
         del legacy_index["source"]["encoding"]
+        del legacy_index["source"]["sha256"]
         index_path.write_text(json.dumps(legacy_index, ensure_ascii=False), encoding="utf-8")
         require(verify_index(index_path, source)["verified"] is True, "legacy UTF-8 index")
+
+        source.write_text(
+            source.read_text(encoding="utf-8").replace("起势", "开篇"),
+            encoding="utf-8",
+        )
+        require(
+            verify_index(root / "index.json", source)["verified"] is True,
+            "legacy same-line compatibility",
+        )
+        current_index = build_index(source)
+        index_path.write_text(json.dumps(current_index, ensure_ascii=False), encoding="utf-8")
+        malformed_index = json.loads(json.dumps(current_index))
+        malformed_index["source"]["sha256"] = None
+        malformed_path = root / "index-malformed.json"
+        malformed_path.write_text(json.dumps(malformed_index), encoding="utf-8")
+        require(
+            verify_index(malformed_path, source)["verified"] is False,
+            "malformed source hash",
+        )
+        source.write_text(
+            source.read_text(encoding="utf-8").replace("开篇", "改写"),
+            encoding="utf-8",
+        )
+        result = verify_index(index_path, source)
+        require(
+            result["verified"] is False
+            and "source content hash does not match the indexed source" in result["problems"],
+            "same-line source drift",
+        )
 
         gb_source = root / "novel-gb18030.txt"
         gb_index_path = root / "index-gb18030.json"
@@ -53,10 +88,12 @@ def main() -> int:
         gb_index_path.write_text(json.dumps(gb_index, ensure_ascii=False), encoding="utf-8")
         require(verify_index(gb_index_path, gb_source)["verified"] is True, "GB18030 index")
 
+        current_index = build_index(source)
+        index_path.write_text(json.dumps(current_index, ensure_ascii=False), encoding="utf-8")
         source.write_text(source.read_text(encoding="utf-8") + "变化\n", encoding="utf-8")
         require(verify_index(index_path, source)["verified"] is False, "source drift")
 
-    print("8 self-tests passed")
+    print("12 self-tests passed")
     return 0
 
 
