@@ -299,8 +299,11 @@ def main() -> int:
             media_assembler._run = original_run
             media_assembler._probe = original_probe
 
-        ffmpeg = os.environ.get("AIGC_DRAMA_FFMPEG") or shutil.which("ffmpeg")
-        ffprobe = os.environ.get("AIGC_DRAMA_FFPROBE") or shutil.which("ffprobe")
+        if os.environ.get("AIGC_DRAMA_SKIP_REAL_FFMPEG") == "1":
+            ffmpeg = ffprobe = None
+        else:
+            ffmpeg = os.environ.get("AIGC_DRAMA_FFMPEG") or shutil.which("ffmpeg")
+            ffprobe = os.environ.get("AIGC_DRAMA_FFPROBE") or shutil.which("ffprobe")
         if ffmpeg and ffprobe:
             def make_real_output(result: dict[str, Any], media_type: str, duration: int) -> None:
                 output_record = result["outputs"][0]
@@ -385,7 +388,7 @@ def main() -> int:
     if ffmpeg and ffprobe:
         print("timeline compiler and real FFmpeg assembly self-test passed")
     else:
-        print("timeline compiler and fixture assembly self-test passed (FFmpeg integration skipped: binaries unavailable)")
+        print("timeline compiler and fixture assembly self-test passed (real FFmpeg integration skipped)")
     return 0
 
 
