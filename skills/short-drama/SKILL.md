@@ -53,6 +53,13 @@ python3 {技能目录}/scripts/project_tool.py init ./my-drama --title "示例�
 ```
 
 `init` 只建立配置和空目录；第一次创作时再把文档写入 `episodes/<EP>/`，不预建空文件。
+已有 `short-drama.json` 但还没有项目生命周期状态时，用 `adopt` 接入；它只读取现有项目 ID，
+创建空状态文件，不改项目配置或创作内容：
+
+```bash
+python3 {技能目录}/scripts/project_tool.py adopt ./my-drama
+```
+
 项目定位与安全写入见 [运行预检](references/runtime-preflight.md)。用户明确要求 Dashboard 时运行：
 
 ```bash
