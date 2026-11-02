@@ -32,7 +32,7 @@ from dag_scheduler import DagError, run_production_dag
 
 MINIMUM_PYTHON = (3, 10)
 if sys.version_info < MINIMUM_PYTHON:
-    raise SystemExit("selftest.py requires Python 3.9 or newer")
+    raise SystemExit("selftest.py requires Python 3.10 or newer")
 
 
 def require(condition: bool, message: str) -> None:
@@ -90,6 +90,110 @@ def main() -> int:
             ),
             encoding="utf-8",
         )
+
+        episode = project / "episodes" / "EP001"
+        episode.mkdir(parents=True)
+        screenplay = "# EP001 测试\n\n## EP001-SC001 内 · 站台 · 深夜\n\n沈青：你好。\n"
+        screenplay_bytes = screenplay.encode("utf-8")
+        spoken = "沈青：你好。".encode("utf-8")
+        span_start = screenplay_bytes.index(spoken)
+        span_end = span_start + len(spoken)
+        (episode / "剧本.md").write_bytes(screenplay_bytes)
+        index_rows = [
+            {"record_type": "screenplay_index_meta", "source_byte_length": len(screenplay_bytes)},
+            {
+                "record_type": "block", "block_id": "BLK-EP001-SC001-D01",
+                "kind": "dialogue", "tag": None, "byte_start": span_start,
+                "byte_end": span_end, "speaker": "沈青",
+            },
+        ]
+        (episode / "screenplay-index.jsonl").write_text(
+            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in index_rows),
+            encoding="utf-8",
+        )
+        voice_sheet = [
+            {
+                "record_type": "sources", "schema_version": "1.0.0",
+                "sources": {"screenplay-index": {
+                    "owner": "short-drama-write",
+                    "artifact": "episodes/EP001/screenplay-index.jsonl",
+                }},
+            },
+            {
+                "line_id": "VLINE-EP001-SC001-001", "episode_id": "EP001",
+                "scene_id": "EP001-SC001", "speaker": "CHAR-SHENQING",
+                "speaker_display": "沈青", "line_text": "你好。",
+                "source_ref": {"src": "screenplay-index", "record_id": "BLK-EP001-SC001-D01"},
+                "channel": "sync",
+            },
+        ]
+        voice_sheet_path = episode / "voice-record-sheet.jsonl"
+        voice_sheet_path.write_text(
+            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in voice_sheet),
+            encoding="utf-8",
+        )
+        tts_job: dict[str, Any] = {
+            "job_id": "SELFTEST-TTS-001", "modality": "tts", "adapter": "fixture",
+            "prompt": "你好。", "source": "episodes/EP001/voice-record-sheet.jsonl",
+            "source_entry": "VLINE-EP001-SC001-001", "references": [],
+            "outputs": ["dist/EP001/audio/VLINE-EP001-SC001-001.wav"],
+            "parameters": {"voice_profile": "fixture-voice"}, "overwrite": False,
+        }
+        for invalid_tts in (
+            {**tts_job, "prompt": "您好。"},
+            {**tts_job, "source_entry": "VLINE-EP002-SC001-001"},
+            {key: value for key, value in tts_job.items() if key != "source_entry"},
+        ):
+            try:
+                _normalize_job(project, invalid_tts)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("unbound or divergent TTS line was accepted")
+        tts_job_path = project / "tts-job.json"
+        tts_job_path.write_text(json.dumps(tts_job, ensure_ascii=False), encoding="utf-8")
+        tts_preview = prepare_job(project, tts_job_path)
+        require(
+            tts_preview["source_entry"] == "VLINE-EP001-SC001-001",
+            "selected voice line was omitted from the confirmation preview",
+        )
+        confirm_job(project, job_id=tts_job["job_id"], confirmation=tts_preview["confirmation"])
+        tts_result = run_job(project, job_id=tts_job["job_id"], adapter_config=config)
+        require(tts_result["state"] == "succeeded", "fixture TTS job did not run")
+
+        changed_tts_job = {**tts_job, "job_id": "SELFTEST-TTS-002",
+                           "outputs": ["dist/EP001/audio/VLINE-EP001-SC001-002.wav"]}
+        changed_tts_path = project / "tts-job-changed.json"
+        changed_tts_path.write_text(
+            json.dumps(changed_tts_job, ensure_ascii=False), encoding="utf-8"
+        )
+        changed_preview = prepare_job(project, changed_tts_path)
+        stored_tts = json.loads(
+            _job_path(project, changed_tts_job["job_id"]).read_text(encoding="utf-8")
+        )
+        require(
+            set(stored_tts["inputs"]) == {
+                "episodes/EP001/voice-record-sheet.jsonl",
+                "episodes/EP001/screenplay-index.jsonl",
+                "episodes/EP001/剧本.md",
+            },
+            "TTS confirmation did not pin the voice sheet and its screenplay projection inputs",
+        )
+        confirm_job(
+            project, job_id=changed_tts_job["job_id"],
+            confirmation=changed_preview["confirmation"],
+        )
+        screenplay_path = episode / "剧本.md"
+        original_screenplay = screenplay_path.read_bytes()
+        screenplay_path.write_bytes(original_screenplay + b"\n")
+        try:
+            run_job(project, job_id=changed_tts_job["job_id"], adapter_config=config)
+        except (ValueError, ConfirmationRequiredError):
+            pass
+        else:
+            raise AssertionError("TTS run accepted a screenplay changed after confirmation")
+        finally:
+            screenplay_path.write_bytes(original_screenplay)
 
         preview = prepare_job(project, job_path)
         stored = json.loads(

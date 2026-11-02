@@ -36,12 +36,16 @@
   utterance; `music` is a separately accepted timeline-level cue or song and
   must not be smuggled into every shot's video job.
 - `source`: optional current project text/spec that owns the prompt.
-- `source_entry`: for a creator-first job, the exact uppercase `IMG-*` or `MOTION-*`
+- `source_entry`: for image/video jobs, the exact uppercase `IMG-*` or `MOTION-*`
   H2 ID inside the canonical `episodes|剧集/<EP>/图片提示词.md|视频提示词.md`
   `source`. A new image/video job pointing to either canonical filename must
-  provide the matching selector; an arbitrary Markdown file cannot impersonate a
-  creator source. `prepare` selects that section and requires `prompt` to exactly
-  equal its copyable prompt after Markdown quote markers are removed.
+  provide the matching selector. For `tts`, it must be the exact `VLINE-*` record
+  in `episodes/<EP>/voice-record-sheet.jsonl`; `prepare` reruns the voice-sheet
+  projection check against the current screenplay and requires `prompt` to equal
+  that record's `line_text` exactly. One TTS job therefore creates one
+  source-bound spoken line. Acting context and voice settings belong in the
+  confirmed job parameters. The voice sheet, screenplay index, and screenplay
+  are pinned in the confirmation fingerprint and adapter's immutable input snapshot.
 - `start_frame_source`: defaults to `ASSET` for a static Lookdev start frame; `CHAIN_PREV` uses the completed parent tail frame. `ASSET` forbids parent/frame fields.
 - `parent_shot_id`: required for `CHAIN_PREV`; absent for `ASSET`.
 - `head_frame`: scheduler-injected project-relative PNG/JPEG/WebP path for a completed parent tail frame. The path, parent ID, and frame bytes are included in the confirmation fingerprint and passed as a separate continuity input; they do not alter creator-authored `reference_bindings`. An adapter must preserve that role or reject the job.

@@ -154,6 +154,8 @@ CREATOR_SOURCE_NAMES = {
 
 REF_SLOT_RE = re.compile(r"REF-[A-Z0-9][A-Z0-9-]{0,79}")
 SOURCE_ENTRY_RE = re.compile(r"[A-Z][A-Z0-9-]{1,99}")
+VOICE_SHEET_PATH_RE = re.compile(r"^episodes/(EP[0-9]{3,})/voice-record-sheet\.jsonl$")
+VOICE_LINE_ID_RE = re.compile(r"^VLINE-(EP[0-9]{3,})-[A-Z0-9-]+$")
 REFERENCE_SUFFIX_RE = r"(?:png|jpe?g|webp)"
 REFERENCE_LINE_RE = re.compile(
     rf"(REF-[A-Z0-9][A-Z0-9-]{{0,79}})（顺序：([1-9]\d*)）· "
@@ -746,6 +748,85 @@ def _canonical_creator_source_modality(source: str | None) -> str | None:
     return CREATOR_SOURCE_NAMES.get(path.name)
 
 
+def _verify_voice_line_source(
+    root: Path, *, source: str, source_entry: str, prompt: str
+) -> dict[str, str]:
+    path_match = VOICE_SHEET_PATH_RE.fullmatch(source)
+    line_match = VOICE_LINE_ID_RE.fullmatch(source_entry)
+    if path_match is None or line_match is None or path_match.group(1) != line_match.group(1):
+        raise ValueError("TTS source_entry must select a line in its episode voice sheet")
+    episode_id = path_match.group(1)
+    index_relative = f"episodes/{episode_id}/screenplay-index.jsonl"
+    screenplay_relative = f"episodes/{episode_id}/剧本.md"
+
+    def read_input(relative: str) -> bytes:
+        with _open_project_input(root, relative) as handle:
+            content = handle.read(MAX_INPUT_BYTES + 1)
+        if len(content) > MAX_INPUT_BYTES:
+            raise ValueError(f"voice projection input is too large: {relative}")
+        return content
+
+    sheet_bytes = read_input(source)
+    index_bytes = read_input(index_relative)
+    screenplay_bytes = read_input(screenplay_relative)
+    if len(sheet_bytes) + len(index_bytes) + len(screenplay_bytes) > MAX_TOTAL_INPUT_BYTES:
+        raise ValueError("voice projection inputs exceed the total size limit")
+    checker = Path(__file__).resolve().parents[2] / "short-drama-write" / "scripts" / "voice_sheet_check.py"
+    if not checker.is_file():
+        raise ValueError("voice sheet checker is unavailable")
+    with tempfile.TemporaryDirectory(prefix="short-drama-voice-check-") as directory:
+        snapshot = Path(directory)
+        sheet = snapshot / "voice-record-sheet.jsonl"
+        index = snapshot / "screenplay-index.jsonl"
+        screenplay = snapshot / "剧本.md"
+        sheet.write_bytes(sheet_bytes)
+        index.write_bytes(index_bytes)
+        screenplay.write_bytes(screenplay_bytes)
+        try:
+            checked = subprocess.run(
+                [sys.executable, str(checker), str(sheet), "--index", str(index), "--screenplay", str(screenplay)],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise ValueError("voice sheet projection check could not run") from exc
+    if checked.returncode != 0:
+        raise ValueError("voice sheet does not match the current screenplay")
+    try:
+        result = json.loads(checked.stdout)
+        sheet_text = sheet_bytes.decode("utf-8")
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("voice sheet is not valid UTF-8 JSONL") from exc
+    if not isinstance(result, Mapping) or result.get("status") != "pass":
+        raise ValueError("voice sheet projection check failed")
+    selected: Mapping[str, Any] | None = None
+    seen: set[str] = set()
+    for number, raw_line in enumerate(sheet_text.splitlines(), 1):
+        if not raw_line.strip():
+            continue
+        try:
+            record = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"voice record sheet line {number} is invalid JSON") from exc
+        if not isinstance(record, Mapping) or record.get("record_type") == "sources":
+            continue
+        line_id = record.get("line_id")
+        if not isinstance(line_id, str):
+            raise ValueError(f"voice record sheet line {number} has no line_id")
+        if line_id in seen:
+            raise ValueError(f"voice line ID is duplicated: {line_id}")
+        seen.add(line_id)
+        if line_id == source_entry:
+            selected = record
+    line_text = selected.get("line_text") if selected is not None else None
+    if not isinstance(line_text, str) or not line_text.strip() or line_text != prompt:
+        raise ValueError("TTS prompt must exactly match its selected voice-sheet line")
+    return {
+        source: sha256_bytes(sheet_bytes),
+        index_relative: sha256_bytes(index_bytes),
+        screenplay_relative: sha256_bytes(screenplay_bytes),
+    }
+
+
 def _normalize_reference_bindings(value: object) -> list[dict[str, Any]]:
     if value is None:
         return []
@@ -1041,7 +1122,14 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     if source_entry is not None and source is None:
         raise ValueError("source_entry requires source")
     creator_source_modality = _canonical_creator_source_modality(source)
-    if creator_source_modality == modality and source_entry is None:
+    verified_voice_source_hashes: dict[str, str] | None = None
+    if modality == "tts":
+        if source is None or source_entry is None:
+            raise ValueError("TTS jobs must select a VLINE-* entry from the episode voice sheet")
+        verified_voice_source_hashes = _verify_voice_line_source(
+            root, source=source, source_entry=source_entry, prompt=prompt
+        )
+    elif creator_source_modality == modality and source_entry is None:
         raise ValueError("creator Markdown source requires source_entry")
     if creator_source_modality is not None and modality != creator_source_modality and not (
         creator_source_modality == "video"
@@ -1049,16 +1137,17 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
         and source_entry is None
     ):
         raise ValueError("creator Markdown source does not match the job modality")
-    expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
-        str(modality)
-    )
-    if source_entry is not None and (
-        expected_entry_prefix is None
-        or not source_entry.startswith(expected_entry_prefix)
-    ):
-        raise ValueError("source_entry does not match the job modality")
-    if source_entry is not None and creator_source_modality != modality:
-        raise ValueError("source_entry requires the canonical creator Markdown path")
+    if modality != "tts":
+        expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
+            str(modality)
+        )
+        if source_entry is not None and (
+            expected_entry_prefix is None
+            or not source_entry.startswith(expected_entry_prefix)
+        ):
+            raise ValueError("source_entry does not match the job modality")
+        if source_entry is not None and creator_source_modality != modality:
+            raise ValueError("source_entry requires the canonical creator Markdown path")
     references_supplied = "references" in raw
     supplied_references = [
         _relative_path(path)
@@ -1073,7 +1162,7 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     ):
         raise ValueError("references must match reference_bindings order")
     references = binding_references if reference_bindings else supplied_references
-    if source_entry is not None:
+    if source_entry is not None and modality != "tts":
         _verify_markdown_source(
             root,
             source=str(source),
@@ -1099,11 +1188,20 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     if len(_canonical(parameters)) > 64 * 1024:
         raise ValueError("job parameters are too large")
     input_paths = ([source] if source is not None else []) + references
+    if verified_voice_source_hashes is not None:
+        input_paths.extend(
+            path for path in verified_voice_source_hashes if path not in input_paths
+        )
     if frame_input["head_frame"] is not None:
         input_paths.append(frame_input["head_frame"])
     if len(set(input_paths)) != len(input_paths):
         raise ValueError("source and references must be unique")
     input_hashes = {path: _hash_project_file(root, path) for path in input_paths}
+    if verified_voice_source_hashes is not None and any(
+        input_hashes.get(path) != digest
+        for path, digest in verified_voice_source_hashes.items()
+    ):
+        raise ValueError("voice projection inputs changed during TTS validation; prepare again")
     execution = {
         "schema_version": JOB_SCHEMA,
         "job_id": job_id,
@@ -1196,17 +1294,28 @@ def _validate_stored_job(
         or source is None
     ):
         raise ValueError("stored job source entry is invalid")
-    expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
-        str(modality)
-    )
-    if source_entry is not None and (
-        expected_entry_prefix is None
-        or not source_entry.startswith(expected_entry_prefix)
-    ):
-        raise ValueError("stored job source entry has the wrong modality")
     creator_source_modality = _canonical_creator_source_modality(
         str(source) if source is not None else None
     )
+    verified_voice_source_hashes: dict[str, str] | None = None
+    if modality == "tts":
+        if source_entry is None:
+            if not legacy:
+                raise ValueError("stored TTS job has no selected voice line")
+        else:
+            verified_voice_source_hashes = _verify_voice_line_source(
+                root, source=str(source), source_entry=source_entry,
+                prompt=str(document.get("prompt", "")),
+            )
+    else:
+        expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
+            str(modality)
+        )
+        if source_entry is not None and (
+            expected_entry_prefix is None
+            or not source_entry.startswith(expected_entry_prefix)
+        ):
+            raise ValueError("stored job source entry has the wrong modality")
     if not legacy and creator_source_modality == modality and source_entry is None:
         raise ValueError("stored creator Markdown job has no source entry")
     if creator_source_modality is not None and modality != creator_source_modality and not (
@@ -1215,7 +1324,7 @@ def _validate_stored_job(
         and source_entry is None
     ):
         raise ValueError("stored creator Markdown source has the wrong modality")
-    if source_entry is not None and creator_source_modality != modality:
+    if modality != "tts" and source_entry is not None and creator_source_modality != modality:
         raise ValueError("stored job creator source path is invalid")
     references = _string_list(
         document.get("references"), label="stored references", limit=16
@@ -1249,6 +1358,10 @@ def _validate_stored_job(
     if not isinstance(document.get("overwrite"), bool):
         raise ValueError("stored job overwrite flag is invalid")
     input_paths = ([source] if source is not None else []) + references
+    if verified_voice_source_hashes is not None:
+        input_paths.extend(
+            path for path in verified_voice_source_hashes if path not in input_paths
+        )
     if frame_input["head_frame"] is not None:
         input_paths.append(frame_input["head_frame"])
     if len(input_paths) != len(set(input_paths)):
@@ -1261,6 +1374,11 @@ def _validate_stored_job(
         for digest in inputs.values()
     ):
         raise ValueError("stored job input hash is invalid")
+    if verified_voice_source_hashes is not None and any(
+        inputs.get(path) != digest
+        for path, digest in verified_voice_source_hashes.items()
+    ):
+        raise ConfirmationRequiredError("stored TTS voice projection inputs changed after validation")
     fingerprint = document.get("fingerprint")
     execution_keys = (
         LEGACY_STORED_EXECUTION_KEYS
