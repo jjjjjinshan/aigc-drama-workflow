@@ -247,6 +247,49 @@ def initialize_project(
     return {"project_root": str(root), "project": project, "state": state}
 
 
+def adopt_project(path: Path) -> dict[str, Any]:
+    """Create empty lifecycle state for an existing project without changing its manifest."""
+    root = path.expanduser().resolve()
+    project_path = root / PROJECT_FILE
+    details = os.lstat(project_path)
+    if _is_link_or_reparse(details) or not stat.S_ISREG(details.st_mode):
+        raise ValueError("project manifest is unsafe")
+    project = json.loads(project_path.read_text(encoding="utf-8"))
+    if not isinstance(project, dict):
+        raise ValueError("project manifest must be an object")
+    project_id = project.get("project_id")
+    if not isinstance(project_id, str) or not project_id.strip():
+        raise ValueError("project manifest needs a non-empty project_id")
+
+    operations = root / ".short-drama"
+    try:
+        details = os.lstat(operations)
+    except FileNotFoundError:
+        operations.mkdir()
+    else:
+        if _is_link_or_reparse(details) or not stat.S_ISDIR(details.st_mode):
+            raise ValueError("project operations directory is unsafe")
+
+    with _project_lock(root):
+        state_path = root / STATE_FILE
+        try:
+            os.lstat(state_path)
+        except FileNotFoundError:
+            pass
+        else:
+            raise FileExistsError("project lifecycle state already exists; use status")
+        state = {
+            "schema_version": STATE_SCHEMA,
+            "project_id": project_id,
+            "project_layout_mode": "auto",
+            "updated_at": utc_now(),
+            "last_action": "adopted",
+            "artifacts": {},
+        }
+        atomic_json(state_path, state)
+    return {"project_root": str(root), "project_id": project_id, "status": "adopted"}
+
+
 def find_project(start: Path) -> Path:
     candidate = start.expanduser().resolve()
     if candidate.is_file():
@@ -1947,6 +1990,9 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--prompt-language", default=DEFAULT_PROMPT_LANGUAGE)
     init.add_argument("--aspect-ratio", default="9:16")
 
+    adopt = commands.add_parser("adopt", help="Track an existing project without changing its manifest.")
+    adopt.add_argument("path")
+
     status = commands.add_parser("status", help="Print a creator-safe project summary.")
     status.add_argument("path", nargs="?", default=".")
 
@@ -2026,6 +2072,8 @@ def main(argv: list[str] | None = None) -> int:
                 prompt_language=args.prompt_language,
                 aspect_ratio=args.aspect_ratio,
             )
+        elif args.command == "adopt":
+            result = adopt_project(Path(args.path))
         elif args.command == "status":
             result = project_status(Path(args.path))
         elif args.command == "publish":

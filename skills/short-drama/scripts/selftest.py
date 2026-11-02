@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
 
-from project_tool import initialize_project, project_status, publish_candidate
+from project_tool import adopt_project, initialize_project, project_status, publish_candidate
 
 MINIMUM_PYTHON = (3, 9)
 if sys.version_info < MINIMUM_PYTHON:
@@ -227,6 +227,45 @@ def main() -> int:
         require(
             project_status(root)["project_id"] == created["project"]["project_id"],
             "project discovery",
+        )
+
+        existing_root = root.parent / "existing-project"
+        existing_root.mkdir()
+        existing_manifest = {**created["project"], "project_id": "EXISTING-PROJECT-001"}
+        manifest_bytes = (json.dumps(existing_manifest, ensure_ascii=False) + "\n").encode()
+        (existing_root / "short-drama.json").write_bytes(manifest_bytes)
+        adopted = adopt_project(existing_root)
+        require(adopted["status"] == "adopted", "existing project adoption")
+        require(
+            (existing_root / "short-drama.json").read_bytes() == manifest_bytes,
+            "adoption changed the existing project manifest",
+        )
+        require(
+            project_status(existing_root)["project_id"] == "EXISTING-PROJECT-001",
+            "adopted project status",
+        )
+        state_path = existing_root / ".short-drama/state.json"
+        existing_state = state_path.read_bytes()
+        try:
+            adopt_project(existing_root)
+        except FileExistsError:
+            pass
+        else:
+            raise AssertionError("adoption overwrote existing lifecycle state")
+        require(state_path.read_bytes() == existing_state, "repeat adoption changed existing state")
+
+        invalid_root = root.parent / "invalid-project"
+        invalid_root.mkdir()
+        (invalid_root / "short-drama.json").write_text('{"title":"missing id"}\n', encoding="utf-8")
+        try:
+            adopt_project(invalid_root)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("adoption accepted a manifest without a project id")
+        require(
+            not (invalid_root / ".short-drama/state.json").exists(),
+            "invalid project adoption created lifecycle state",
         )
 
         published = publish_candidate(
