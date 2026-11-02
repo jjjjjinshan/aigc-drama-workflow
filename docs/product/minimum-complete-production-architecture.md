@@ -60,6 +60,19 @@
 
 生产任务契约接受 `tts` modality，但仓库没有内置 TTS Provider。首轮先根据用户可用服务和实际声音需求，在 TTS 与人工录音导入之间确定路径；核实许可、读音修正、声音一致性、价格和留存政策。不把音色克隆作为默认需求。所选路径需将准确台词、角色/声线、发音与表演说明、来源和输出音频纳入同一时间线，并支持局部替换和复验。
 
+截至 2026-11-02 的官方资料初筛（价格/套餐可能变化，执行前复核）：
+
+| 候选 | 已核实信息 | 试产前仍需确认 |
+|---|---|---|
+| 火山方舟 `doubao-seed-tts-2.0` | 方舟 Agent Plan 文档列出语音模型；套餐内按字符数扣 AFP，当前系数文档为 1350 AFP/万字符 | 用户是否有可调用套餐；声线目录、表演可控性、授权与接口输入输出细节；现有 Seedance 能力并不自动代表 TTS 已授权 |
+| MiniMax Audio T2A | 官方限流文档列出 `speech-02-hd/turbo` 等 T2A 模型；有独立语音 API | 用户账户/余额、最新字符价格、中文角色声线与跨句一致性；已有 MiniMax Music Adapter 不等于已接入 TTS |
+| ElevenLabs TTS | 官方文档明确支持普通话；v4 支持多说话人场景。API 页面当前列示约 $0.08/千字符 | 用户是否能访问并付款、目标普通话口音与情绪效果、声线许可和数据条款 |
+| 人工录音导入 | 可作为质量/时间成本对照，不需 TTS Provider 费用 | 仓库当前还没有独立录音导入与来源登记通道，若选此路线需先补齐安全导入和逐句绑定 |
+
+官方参考：[火山方舟 Agent Plan 套餐与模型](https://console.volcengine.com/ark/region%3Acn-beijing/docs/agent-plan-personal-plan-overview)、[火山方舟语音计费规则](https://console.volcengine.com/ark/region%3Acn-beijing/docs/agent-plan-personal-afp-credits-billing-rules)、[MiniMax T2A API 限流/模型](https://platform.minimaxi.com/document/Rate%20limits?key=66b19417290299a26b234572)、[ElevenLabs TTS 模型与中文支持](https://elevenlabs.io/docs/overview/capabilities/text-to-speech)、[ElevenLabs API 价格](https://elevenlabs.io/zh/pricing/api)。
+
+决策门：先从用户已有账户中选最多两个候选，用同一组短句、相同角色设定做盲听；记录多音字/专名错误、情绪方向、跨句音色一致性、单句重做成本和实际费用。未确认账户、预算或授权时不调用在线生成；若没有合适账户，先比较录音导入所需人工时间，再决定是否新增服务。
+
 ## 2. 端到端运行关系
 
 ```text
