@@ -329,7 +329,7 @@ def _open_project_input(root: Path, relative: str) -> Iterator[BinaryIO]:
             raise FileNotFoundError(f"job input is missing: {relative}") from exc
         if _is_link_or_reparse(details):
             raise ValueError(f"unsafe job input path: {relative}")
-    if not path.resolve().is_relative_to(root):
+    if not path.resolve().is_relative_to(root.resolve()):
         raise ValueError(f"job input escapes project root: {relative}")
     before = path.stat(follow_symlinks=False)
     if not stat.S_ISREG(before.st_mode):
