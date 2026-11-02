@@ -14,6 +14,7 @@ how they adapt are decisions for the skill workflow, not for this file.
 from __future__ import annotations
 
 import argparse
+import codecs
 import json
 import os
 import re
@@ -351,9 +352,12 @@ def validate_chapters(
     return problems
 
 
-def build_index(source: Path, unit_override: str | None = None) -> dict[str, Any]:
+def build_index(
+    source: Path, unit_override: str | None = None, encoding: str = "utf-8"
+) -> dict[str, Any]:
     raw = source.read_bytes()
-    text = raw.decode("utf-8")
+    encoding = codecs.lookup(encoding).name
+    text = raw.decode(encoding)
     lines = text.split("\n")
     headings, long_heading_lines = find_heading_lines(lines)
     unit, ignored_units = select_chapter_unit(headings, unit_override)
@@ -388,6 +392,7 @@ def build_index(source: Path, unit_override: str | None = None) -> dict[str, Any
         "record_type": "novel_chapter_index",
         "source": {
             "artifact": source.name,
+            "encoding": encoding,
             "char_count": _visible_width(text),
             "line_count": len(lines),
         },
@@ -432,7 +437,13 @@ def verify_index(index_path: Path, source: Path) -> dict[str, Any]:
                 "index is missing its source record"
             ],
         }
-    text = raw.decode("utf-8")
+    encoding = source_record.get("encoding", "utf-8")
+    if not isinstance(encoding, str):
+        return {"verified": False, "problems": ["source encoding must be a string"]}
+    try:
+        text = raw.decode(codecs.lookup(encoding).name)
+    except (LookupError, UnicodeDecodeError) as error:
+        return {"verified": False, "problems": [f"source cannot be decoded: {error}"]}
     lines = text.split("\n")
     chapters = index.get("chapters", [])
     if not isinstance(chapters, list) or not chapters:
@@ -589,6 +600,11 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("source", type=Path)
     build.add_argument("--out", type=Path, default=None)
     build.add_argument(
+        "--encoding",
+        default="utf-8",
+        help="source text encoding (default: utf-8)",
+    )
+    build.add_argument(
         "--unit",
         choices=CHAPTER_UNITS,
         default=None,
@@ -611,7 +627,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "index":
-        document = build_index(args.source, args.unit)
+        document = build_index(args.source, args.unit, args.encoding)
         payload = json.dumps(document, ensure_ascii=True, indent=2, sort_keys=True)
         if args.out is not None:
             _atomic_write_text(args.out, payload + "\n")

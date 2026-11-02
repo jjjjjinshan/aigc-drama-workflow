@@ -49,7 +49,7 @@
 
 | ID | Class | Knowledge |
 |---|---|---|
-| NVA-01 | structural_invariant | All stages slice the source through one chapter index built from that source; `verify` blocks on a chapter set whose numbering, ordering or line spans do not cover that source. An edited source still invalidates the index and everything derived from it, but only a changed line count or numbering is reported — a same-line-count rewrite in place is not, so whoever edits the source re-indexes it. |
+| NVA-01 | structural_invariant | All stages slice the source through one chapter index built from that source; the index records the source encoding (`utf-8` by default), and `verify` reuses it while treating older indexes without an encoding as UTF-8. `verify` blocks on a chapter set whose numbering, ordering or line spans do not cover that source. An edited source still invalidates the index and everything derived from it, but only a changed line count or numbering is reported — a same-line-count rewrite in place is not, so whoever edits the source re-indexes it. |
 | NVA-02 | structural_invariant | Every extracted claim carries a source locator and span; a claim with no span cannot be cited downstream. |
 | NVA-03 | structural_invariant | Aggregation may not start while chapter coverage is incomplete; missing chapters are named in every aggregate that inherits the gap. |
 | NVA-04 | structural_invariant | Analysis records de-quoted function summaries, never copied source paragraphs. |

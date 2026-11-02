@@ -40,10 +40,23 @@ def main() -> int:
         require(verify_index(index_path, source)["verified"] is True, "fresh index")
         require(sample_chapters(index_path, 2)["sampled_count"] == 2, "sample count")
 
+        legacy_index = json.loads(index_path.read_text(encoding="utf-8"))
+        del legacy_index["source"]["encoding"]
+        index_path.write_text(json.dumps(legacy_index, ensure_ascii=False), encoding="utf-8")
+        require(verify_index(index_path, source)["verified"] is True, "legacy UTF-8 index")
+
+        gb_source = root / "novel-gb18030.txt"
+        gb_index_path = root / "index-gb18030.json"
+        gb_source.write_bytes(source.read_bytes().decode("utf-8").encode("gb18030"))
+        gb_index = build_index(gb_source, encoding="gb18030")
+        require(gb_index["source"]["encoding"] == "gb18030", "record source encoding")
+        gb_index_path.write_text(json.dumps(gb_index, ensure_ascii=False), encoding="utf-8")
+        require(verify_index(gb_index_path, gb_source)["verified"] is True, "GB18030 index")
+
         source.write_text(source.read_text(encoding="utf-8") + "变化\n", encoding="utf-8")
         require(verify_index(index_path, source)["verified"] is False, "source drift")
 
-    print("5 self-tests passed")
+    print("8 self-tests passed")
     return 0
 
 
