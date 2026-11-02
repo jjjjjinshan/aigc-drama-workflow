@@ -11,7 +11,7 @@
 | 03 | 剧本写作 | `short-drama-write` | `剧本.md` |
 | 04 | 视觉设定与资产 | `short-drama-assets`、`short-drama-image-prompts` | `视觉设定.md`、`图片提示词.md` |
 | 05 | 分镜与运动提示词 | `short-drama-storyboard`、`short-drama-video-prompts` | `分镜.md`、`视频提示词.md` |
-| 06 | 生产与审查 | `short-drama-produce`、`google-flow-manga`、`short-drama-review` | 制作成果、Flow 包、审查报告 |
+| 06 | 生产、后期与审查 | `short-drama-produce`、`short-drama-edit`、`google-flow-manga`、`short-drama-review` | 媒体素材、成片编排、母版/字幕、Flow 包、审查报告 |
 
 ---
 
@@ -165,6 +165,12 @@
 **「继续」「都做完」「预算没问题」、上游内容已接受或之前确认过另一版，都不算本次生产确认。**
 
 失败按三路走：技术失败（超时、限流、服务端错误）可做有上限重试；被拒输入（提示词、参考图、音频）先改那一项再投；重复内容缺陷回到对应 prompt/spec owner。
+
+### 后期编排（`short-drama-edit`）
+
+只有进入最终组装时才创建 `episodes/<EP>/成片编排.md`。创作者选定已成功且字节未变的素材，定义顺序、剪入点、对白/音乐/音效落点、字幕时间与输出规格；对白与字幕绑定 `VLINE-*`，字幕文字从经过 `voice_sheet_check.py` 的录音表读取。编译器输出受限 EDL 与 SRT，不调用供应商，也不执行自由格式 shell/FFmpeg 命令。
+
+默认运行只检查；指定一个全新版本目录才写入编译文件。技术编译成功仍不代表视频可解码或内容质量通过；本地组装阶段负责渲染、媒体探测、版本化母版和失败恢复，审美与表演由创作者审片。
 
 ### Flow 生产包（`google-flow-manga`）
 

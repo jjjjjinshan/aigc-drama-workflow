@@ -1,0 +1,4 @@
+interface:
+  display_name: "短剧成片编排"
+  short_description: "审阅镜头剪辑、对白与声音时间线，编译可追溯的 EDL 和字幕"
+  default_prompt: "使用 $short-drama-edit 为已生成媒体建立单集成片编排，校验来源和字幕投影，并编译受限 EDL。"

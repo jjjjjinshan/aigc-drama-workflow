@@ -24,7 +24,7 @@
 │ 创作层    剧本 → 视觉设定 → 图片提示词                    │
 │                 → 分镜   → 视频提示词                     │
 ├─────────────────────────────────────────────────────────┤
-│ 生产层    生产执行  /  Flow 生产包                        │
+│ 生产层    生产执行 / Flow 生产包 / 后期编排与组装          │
 ├─────────────────────────────────────────────────────────┤
 │ 产出层    成片 · 交付包                                   │
 └─────────────────────────────────────────────────────────┘
@@ -70,6 +70,11 @@ job → prepare → confirm → run
 
 **Flow 生产包**：把已确认的剧本、视觉设定、分镜与关键帧，转换成可检查、可逐镜执行、可回审的 Google Flow 交接包。连续性来自显式状态，不依赖模型记忆。
 
+**后期编排（`short-drama-edit`）**：媒体生成成功后，由独立 owner 创建
+`episodes/<EP>/成片编排.md`，记录已核验的镜头输出、剪辑顺序、对白与字幕、音乐/音效位置、混音参数和
+交付规格。字幕从已校验的录音表投影；剪辑决定只保存在时间线中，不回写剧本、分镜或媒体提示词。
+脚本将它编译成受限 EDL 与 SRT；后续本地组装器据此生成新版本母版并做媒体技术检查，不能覆盖既有版本。
+
 ### 产出层
 
 成片与交付包。归档只复制用户点名的当前文档和成品，排除私有输入、凭据、绝对路径与隐藏运行状态。
@@ -106,9 +111,12 @@ job → prepare → confirm → run
    │      ├── 分镜.md
    │      └── 视频提示词.md
    │
+   ├─▶ episodes/<EP>/成片编排.md      ← 后期层（仅进入组装时创建）
+   │
    ├─▶ assets/lookdev/                ← 本地 Lookdev 资产库（定妆照 / 概念图 / 道具卡）
    │
    ├─▶ dist/<EP>/                     ← 生产层（图片、视频、音频）
+   │      └── assembly/<版本>/         ← 编译 EDL、字幕、母版与交付清单
    │
    ├─▶ flow/<EP>/                     ← Flow 生产包
    │      ├── flow-package.json
@@ -134,7 +142,9 @@ job → prepare → confirm → run
 | `episodes/<EP>/图片提示词.md` | `short-drama-image-prompts` |
 | `episodes/<EP>/分镜.md` | `short-drama-storyboard` |
 | `episodes/<EP>/视频提示词.md` | `short-drama-video-prompts` |
-| `dist/<EP>/**` | `short-drama-produce` |
+| `episodes/<EP>/成片编排.md` | `short-drama-edit` |
+| `dist/<EP>/(video|image|audio)/**` | `short-drama-produce` |
+| `dist/<EP>/assembly/**` | `short-drama-edit`（组装器执行与版本交付） |
 | `flow/<EP>/**` | `google-flow-manga` |
 | `审查/**` | `short-drama-review` |
 

@@ -46,8 +46,9 @@ flowchart LR
 
     %% 阶段 6：合成交付
     subgraph STAGE6 ["6. 成片交付"]
-        F4 --> G1["FFmpeg 剪辑 / 剪映草稿"]:::deliverStyle
-        G1 --> G2["🎬 终生成片与交付包"]:::deliverStyle
+        F4 --> G0["short-drama-edit<br/>成片编排 / EDL / SRT"]:::deliverStyle
+        G0 --> G1["FFmpeg 受限组装"]:::deliverStyle
+        G1 --> G2["🎬 版本化母版与交付包"]:::deliverStyle
     end
 
     %% 横切组件

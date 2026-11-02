@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1540" role="img" aria-labelledby="title description">
   <title id="title">AIGC 漫剧 / 短剧创作工作流架构</title>
-  <desc id="description">六阶段工作流：从故事拆解和五份 Markdown 创作契约，进入 Lookdev 资产准备、生产校验与逐镜确认，再经 Adapter 渲染并交付。总控、审查和 Google Flow 导出贯穿相关阶段。</desc>
+  <desc id="description">六阶段工作流：从故事拆解和五份 Markdown 创作契约，进入 Lookdev 资产准备、生产校验与逐镜确认，再由 short-drama-edit 编排剪辑、字幕和声音，最后经 FFmpeg 组装交付。总控、审查和 Google Flow 导出贯穿相关阶段。</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="oklch(0.47 0.030 250)"/></marker>
     <marker id="arrow-olive" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" height="7" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="oklch(0.45 0.100 110)"/></marker>
@@ -119,15 +119,19 @@
 
   <rect class="panel" x="40" y="1085" width="1040" height="150" rx="12"/>
   <text class="stage-title" x="62" y="1119">6 · 合成与交付</text>
-  <text class="stage-note" x="250" y="1119">工作流交付素材与生产包，创作者完成最终剪辑</text>
-  <rect class="node-deliver" x="160" y="1143" width="330" height="66" rx="9"/>
-  <text class="node-title" x="325" y="1171" text-anchor="middle">FFmpeg / 剪映草稿</text>
-  <text class="node-note" x="325" y="1193" text-anchor="middle">创作者剪辑与节奏调整</text>
-  <rect class="node-deliver" x="630" y="1143" width="330" height="66" rx="9"/>
-  <text class="node-title" x="795" y="1171" text-anchor="middle">成片与交付包</text>
-  <text class="node-note" x="795" y="1193" text-anchor="middle">素材、项目文件与最终成片</text>
-  <path class="arrow" d="M947 1021 V1070 H325 V1135"/>
-  <path class="arrow" d="M490 1176 H622"/>
+  <text class="stage-note" x="250" y="1119">创作者审阅编排，后期工具确定性合成</text>
+  <rect class="node-deliver" x="80" y="1143" width="280" height="66" rx="9"/>
+  <text class="node-title" x="220" y="1171" text-anchor="middle">short-drama-edit · EDL / SRT</text>
+  <text class="node-note" x="220" y="1193" text-anchor="middle">剪辑、字幕与混音意图</text>
+  <rect class="node-deliver" x="420" y="1143" width="280" height="66" rx="9"/>
+  <text class="node-title" x="560" y="1171" text-anchor="middle">FFmpeg 受限组装</text>
+  <text class="node-note" x="560" y="1193" text-anchor="middle">媒体探测与失败保护</text>
+  <rect class="node-deliver" x="760" y="1143" width="280" height="66" rx="9"/>
+  <text class="node-title" x="900" y="1171" text-anchor="middle">版本化母版与交付包</text>
+  <text class="node-note" x="900" y="1193" text-anchor="middle">不覆盖既有版本</text>
+  <path class="arrow" d="M947 1021 V1070 H220 V1135"/>
+  <path class="arrow" d="M360 1176 H412"/>
+  <path class="arrow" d="M700 1176 H752"/>
 
   <rect x="40" y="1280" width="1040" height="220" rx="12" fill="oklch(0.985 0.006 110)" stroke="oklch(0.84 0.020 250)" stroke-width="1.5" stroke-dasharray="7 6"/>
   <text x="62" y="1314" fill="oklch(0.28 0.025 250)" font-size="15" font-weight="700">横切服务</text>
