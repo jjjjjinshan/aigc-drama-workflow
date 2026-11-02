@@ -72,6 +72,10 @@ python3 {技能目录}/scripts/novel_index.py index <原著.txt> --out <chapter-
 ```bash
 python3 {技能目录}/scripts/novel_index.py index 输入/{原文文件} \
   --out 项目开发/source-analysis/_work/_index.next.json
+# 只分析明确授权/选定的完整章节范围时，行号对原文（含边界）
+python3 {技能目录}/scripts/novel_index.py index 输入/{原文文件} \
+  --encoding gb18030 --start-line 7 --end-line 456 \
+  --out 项目开发/source-analysis/_work/_index.next.json
 python3 {技能目录}/scripts/novel_index.py verify \
   项目开发/source-analysis/_work/_index.next.json 输入/{原文文件}
 # 项目工具可用时可选：
@@ -81,6 +85,9 @@ python3 {core 技能目录}/scripts/project_tool.py publish {项目根} \
   --input 输入/{原文文件}
 ```
 
+`--encoding` 指定原文编码，默认 `utf-8`；编码会写入索引，`verify` 自动沿用，旧索引按 UTF-8 读取。
+遇到 GB18030 文本时传 `--encoding gb18030`。`--start-line` 和 `--end-line` 必须成对使用，均为原文的含边界行号；范围必须从章节标题开始，并在下一章节标题前结束。
+范围索引仍绑定整份原文的 SHA-256，因此范围外的源文件变化也会使索引失效；`sample` 的覆盖率只表示该索引范围，不代表全书覆盖。
 脚本识别阿拉伯数字与中文数字章号（含 千 / 两，覆盖千章以上连载），**只认一种编号单位**
 （章/回/节里出现最多的那个，其余记进 `ignored_heading_units`），只把**短的独立行**当标题
 （以章号开头的正文段落记进 `long_heading_lines_skipped`），剔除开头的目录块，
@@ -98,8 +105,8 @@ python3 {core 技能目录}/scripts/project_tool.py publish {项目根} \
 `_work/_index.next.json`，通过 `verify` 后再按上面的公开生命周期发布——手写的行也要带齐
 `sequence` / `line_start` / `line_end`，`verify` 会逐行检查并报出缺字段的行。
 
-改了原文必须重建索引，不能沿用旧 span。`verify` 核对编号、顺序与行号覆盖，所以插行删行会被报出来；
-但同行数的原地改写不会——那一步靠改原文的人自己重建，套件不比对字节。
+改了原文必须重建索引，不能沿用旧 span。新索引记录原文字节的 SHA-256，`verify` 会检查摘要、编号、顺序与行号覆盖，
+因此同行数的原地改写也会被拦下。旧索引没有摘要时仍按旧规则检查结构；继续分析前应重建索引。
 
 ```bash
 python3 {技能目录}/scripts/novel_index.py verify \

@@ -14,6 +14,8 @@ how they adapt are decisions for the skill workflow, not for this file.
 from __future__ import annotations
 
 import argparse
+import codecs
+import hashlib
 import json
 import os
 import re
@@ -242,7 +244,10 @@ def drop_leading_table_of_contents(
 
 
 def build_chapters(
-    lines: list[str], headings: list[dict[str, Any]], text: str
+    lines: list[str],
+    headings: list[dict[str, Any]],
+    text: str,
+    end_line_limit: int | None = None,
 ) -> list[dict[str, Any]]:
     line_offsets = _line_offsets(lines)
     chapters: list[dict[str, Any]] = []
@@ -251,7 +256,7 @@ def build_chapters(
         end_line = (
             headings[position + 1]["line_index"]
             if position + 1 < len(headings)
-            else len(lines)
+            else end_line_limit or len(lines)
         )
         body = text[
             line_offsets[start_line] : (
@@ -351,17 +356,48 @@ def validate_chapters(
     return problems
 
 
-def build_index(source: Path, unit_override: str | None = None) -> dict[str, Any]:
+def build_index(
+    source: Path,
+    unit_override: str | None = None,
+    encoding: str = "utf-8",
+    start_line: int | None = None,
+    end_line: int | None = None,
+) -> dict[str, Any]:
     raw = source.read_bytes()
-    text = raw.decode("utf-8")
+    encoding = codecs.lookup(encoding).name
+    text = raw.decode(encoding)
     lines = text.split("\n")
     headings, long_heading_lines = find_heading_lines(lines)
     unit, ignored_units = select_chapter_unit(headings, unit_override)
     headings = [heading for heading in headings if heading["unit"] == unit]
     headings, dropped = drop_leading_table_of_contents(headings)
-    chapters = build_chapters(lines, headings, text)
+    first_heading_line = headings[0]["line_index"] + 1 if headings else 1
+    scope_start = first_heading_line if start_line is None else start_line
+    scope_end = len(lines) if end_line is None else end_line
+    scope_problems: list[str] = []
+    if (start_line is None) != (end_line is None):
+        scope_problems.append("--start-line and --end-line must be provided together")
+    if not (1 <= scope_start <= scope_end <= len(lines)):
+        scope_problems.append(
+            f"scope lines {scope_start}-{scope_end} are outside the source's 1-{len(lines)} lines"
+        )
+    heading_lines = {heading["line_index"] + 1 for heading in headings}
+    if scope_start not in heading_lines:
+        scope_problems.append(f"scope must start on a chapter heading; line {scope_start} does not")
+    if scope_end < len(lines) and scope_end + 1 not in heading_lines:
+        scope_problems.append(
+            f"scope must end immediately before a chapter heading; line {scope_end + 1} does not"
+        )
+    scoped_headings = [
+        heading
+        for heading in headings
+        if scope_start <= heading["line_index"] + 1 <= scope_end
+    ]
+    chapters = build_chapters(lines, scoped_headings, text, scope_end)
+    for chapter in chapters:
+        chapter["line_end"] = min(chapter["line_end"], scope_end)
     segments = segment_by_restart(chapters)
-    problems = validate_chapters(chapters, segments)
+    problems = scope_problems + validate_chapters(chapters, segments)
     if unit is not None:
         coarser = [
             other
@@ -388,9 +424,12 @@ def build_index(source: Path, unit_override: str | None = None) -> dict[str, Any
         "record_type": "novel_chapter_index",
         "source": {
             "artifact": source.name,
+            "encoding": encoding,
+            "sha256": hashlib.sha256(raw).hexdigest(),
             "char_count": _visible_width(text),
             "line_count": len(lines),
         },
+        "scope": {"line_start": scope_start, "line_end": scope_end},
         "chapter_unit": unit,
         # Kept in the record rather than only warned about: a creator whose book
         # numbers chapters as 第N节 needs to see that 章 headings were skipped.
@@ -432,7 +471,24 @@ def verify_index(index_path: Path, source: Path) -> dict[str, Any]:
                 "index is missing its source record"
             ],
         }
-    text = raw.decode("utf-8")
+    expected_hash = source_record.get("sha256")
+    if "sha256" in source_record:
+        if (
+            not isinstance(expected_hash, str)
+            or re.fullmatch(r"[0-9a-f]{64}", expected_hash) is None
+        ):
+            problems.append(
+                "source sha256 must be a 64-character lowercase hexadecimal digest"
+            )
+        elif hashlib.sha256(raw).hexdigest() != expected_hash:
+            problems.append("source content hash does not match the indexed source")
+    encoding = source_record.get("encoding", "utf-8")
+    if not isinstance(encoding, str):
+        return {"verified": False, "problems": ["source encoding must be a string"]}
+    try:
+        text = raw.decode(codecs.lookup(encoding).name)
+    except (LookupError, UnicodeDecodeError) as error:
+        return {"verified": False, "problems": [f"source cannot be decoded: {error}"]}
     lines = text.split("\n")
     chapters = index.get("chapters", [])
     if not isinstance(chapters, list) or not chapters:
@@ -444,7 +500,19 @@ def verify_index(index_path: Path, source: Path) -> dict[str, Any]:
         or chapter_count != len(chapters)
     ):
         problems.append("chapter_count does not match the chapter rows")
-    previous_end: int | None = None
+    scope = index.get("scope")
+    if scope is None:
+        scope_start = chapters[0].get("line_start", 1) if isinstance(chapters[0], dict) else 1
+        scope_end = len(lines)
+    elif not isinstance(scope, dict):
+        return {"verified": False, "problems": ["scope must be an object"]}
+    else:
+        scope_start, scope_end = scope.get("line_start"), scope.get("line_end")
+        if any(isinstance(value, bool) or not isinstance(value, int) for value in (scope_start, scope_end)):
+            return {"verified": False, "problems": ["scope line bounds must be integers"]}
+        if not (1 <= scope_start <= scope_end <= len(lines)):
+            return {"verified": False, "problems": ["scope lines are outside the source"]}
+    previous_end: int | None = scope_start - 1
     for position, chapter in enumerate(chapters, start=1):
         if not isinstance(chapter, dict):
             problems.append(f"chapter row {position} is not an object")
@@ -473,8 +541,8 @@ def verify_index(index_path: Path, source: Path) -> dict[str, Any]:
         ):
             problems.append(f"chapter {sequence} line span must use integer line numbers")
             continue
-        if not (1 <= start_line <= len(lines)) or not (
-            start_line <= end_line <= len(lines)
+        if not (scope_start <= start_line <= scope_end) or not (
+            start_line <= end_line <= scope_end
         ):
             problems.append(
                 f"chapter {chapter['sequence']} spans lines "
@@ -488,9 +556,9 @@ def verify_index(index_path: Path, source: Path) -> dict[str, Any]:
             )
             continue
         previous_end = end_line
-    if previous_end is not None and previous_end != len(lines):
+    if previous_end is not None and previous_end != scope_end:
         problems.append(
-            f"chapter spans end at line {previous_end}; source ends at line {len(lines)}"
+            f"chapter spans end at line {previous_end}; scope ends at line {scope_end}"
         )
     return {"verified": not problems, "problems": problems}
 
@@ -538,6 +606,7 @@ def sample_chapters(index_path: Path, count: int = DEFAULT_SAMPLE_COUNT) -> dict
     ]
     return {
         "total_chapters": total,
+        "scope": index.get("scope"),
         "sampled_count": len(sampled),
         "coverage_ratio": round(len(sampled) / total, 4),
         "sampled": sampled,
@@ -589,6 +658,13 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("source", type=Path)
     build.add_argument("--out", type=Path, default=None)
     build.add_argument(
+        "--encoding",
+        default="utf-8",
+        help="source text encoding (default: utf-8)",
+    )
+    build.add_argument("--start-line", type=int, default=None, help="first source line in a scoped index")
+    build.add_argument("--end-line", type=int, default=None, help="last source line in a scoped index")
+    build.add_argument(
         "--unit",
         choices=CHAPTER_UNITS,
         default=None,
@@ -611,7 +687,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "index":
-        document = build_index(args.source, args.unit)
+        document = build_index(args.source, args.unit, args.encoding, args.start_line, args.end_line)
         payload = json.dumps(document, ensure_ascii=True, indent=2, sort_keys=True)
         if args.out is not None:
             _atomic_write_text(args.out, payload + "\n")
