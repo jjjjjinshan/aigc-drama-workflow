@@ -23,8 +23,12 @@ from production_tool import (
     _normalize_job,
     _publish_outputs,
     _project_file,
+    _read_run_history,
+    _write_run,
+    recover_interrupted_run,
     _validate_stored_job,
     sha256_bytes,
+    utc_now,
 )
 from provider_adapters import (
     compile_gpt_image_2_payload,
@@ -405,6 +409,140 @@ def main() -> int:
         require(
             all((project / output).read_bytes() == b"previous-version" for output in rollback_outputs),
             "failed overwrite publish did not restore the previous output set",
+        )
+
+        interrupted_job_id = "SELFTEST-PUBLISH-INTERRUPTED"
+        interrupted_run_id = "20261103T120000-deadbeef"
+        interrupted_outputs = [
+            "dist/EP001/partial/interrupted-1.png",
+            "dist/EP001/partial/interrupted-2.png",
+        ]
+        interrupted_sources = [base / "interrupted-1.png", base / "interrupted-2.png"]
+        for output, source in zip(interrupted_outputs, interrupted_sources):
+            (project / output).parent.mkdir(parents=True, exist_ok=True)
+            (project / output).write_bytes(b"previous-version")
+            source.write_bytes(b"replacement-version")
+        interrupted_job = {
+            "job_id": interrupted_job_id,
+            "modality": "image",
+            "adapter": "fixture",
+            "prompt": "interrupted publication recovery",
+            "references": [],
+            "outputs": interrupted_outputs,
+            "parameters": {},
+            "overwrite": True,
+        }
+        interrupted_job_path = base / "interrupted-job.json"
+        interrupted_job_path.write_text(json.dumps(interrupted_job), encoding="utf-8")
+        prepare_job(project, interrupted_job_path)
+        stored_interrupted_job = json.loads(
+            _job_path(project, interrupted_job_id).read_text(encoding="utf-8")
+        )
+        interrupted_run = {
+            "schema_version": "1.0",
+            "run_id": interrupted_run_id,
+            "job_id": interrupted_job_id,
+            "fingerprint": stored_interrupted_job["fingerprint"],
+            "status": "running",
+            "started_at": utc_now(),
+            "finished_at": None,
+            "process_id": os.getpid(),
+            "outputs": [],
+        }
+        _write_run(project, interrupted_job_id, interrupted_run)
+        class SimulatedProcessStop(BaseException):
+            pass
+
+        real_publish_replace = os.replace
+        first_target = project / interrupted_outputs[0]
+
+        def stop_after_first_publish(source: str | Path, target: str | Path) -> None:
+            real_publish_replace(source, target)
+            if Path(target) == first_target:
+                raise SimulatedProcessStop()
+
+        try:
+            with patch("production_tool.os.replace", side_effect=stop_after_first_publish):
+                _publish_outputs(
+                    project,
+                    list(zip(interrupted_outputs, interrupted_sources)),
+                    overwrite=True,
+                    job_id=interrupted_job_id,
+                    run_id=interrupted_run_id,
+                )
+        except SimulatedProcessStop:
+            pass
+        else:
+            raise AssertionError("publication interruption fixture did not stop mid-publish")
+        require(
+            (project / interrupted_outputs[0]).read_bytes() == b"replacement-version"
+            and (project / interrupted_outputs[1]).read_bytes() == b"previous-version",
+            "crash fixture did not leave the expected partial output state",
+        )
+        try:
+            recover_interrupted_run(
+                project,
+                job_id=interrupted_job_id,
+                run_id=interrupted_run_id,
+                confirm_stopped=True,
+            )
+        except ValueError as exc:
+            require("process is still running" in str(exc), "active run recovery was not refused")
+        else:
+            raise AssertionError("recovery acted while the recorded process was alive")
+        interrupted_run["process_id"] = 0
+        _write_run(project, interrupted_job_id, interrupted_run)
+        (project / interrupted_outputs[1]).write_bytes(b"external-change")
+        try:
+            recover_interrupted_run(
+                project,
+                job_id=interrupted_job_id,
+                run_id=interrupted_run_id,
+                confirm_stopped=True,
+            )
+        except ValueError as exc:
+            require("manual review required" in str(exc), "unexpected rollback conflict")
+        else:
+            raise AssertionError("recovery overwrote a concurrent output change")
+        require(
+            (project / interrupted_outputs[0]).read_bytes() == b"replacement-version"
+            and (project / interrupted_outputs[1]).read_bytes() == b"external-change",
+            "conflicted recovery modified output files before preflight completed",
+        )
+        (project / interrupted_outputs[1]).write_bytes(b"previous-version")
+        try:
+            recover_interrupted_run(
+                project,
+                job_id=interrupted_job_id,
+                run_id=interrupted_run_id,
+                confirm_stopped=False,
+            )
+        except ValueError as exc:
+            require("--confirm-stopped" in str(exc), "recovery omitted stopped-process gate")
+        else:
+            raise AssertionError("recovery did not require stopped-process confirmation")
+        recovery = recover_interrupted_run(
+            project,
+            job_id=interrupted_job_id,
+            run_id=interrupted_run_id,
+            confirm_stopped=True,
+        )
+        require(
+            recovery["state"] == "failed" and recovery["outputs_restored"] is True,
+            "interrupted publication recovery did not report the restored state",
+        )
+        require(
+            all((project / output).read_bytes() == b"previous-version" for output in interrupted_outputs),
+            "interrupted publication recovery failed to restore the prior output set",
+        )
+        require(
+            not list((project / "dist/EP001/partial").glob(".interrupted-*.png.*.bak"))
+            and not list((project / "dist/EP001/partial").glob(".interrupted-*.png.*.tmp")),
+            "interrupted publication recovery left staging or backup files",
+        )
+        require(
+            _read_run_history(project, interrupted_job_id)[0]["status"] == "failed",
+            "recovered publication remained a running attempt",
         )
 
         head_frame = project / "dist" / "EP001" / "video" / "parent-tail.png"

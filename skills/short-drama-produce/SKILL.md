@@ -72,6 +72,7 @@ python3 <本技能目录>/scripts/production_tool.py run <project> --job-id <id>
 python3 <本技能目录>/scripts/production_tool.py status <project> --job-id <id>
 python3 <本技能目录>/scripts/production_tool.py rerun <project> --shot <SHOT-ID>
 python3 <本技能目录>/scripts/production_tool.py audit <project>
+python3 <本技能目录>/scripts/production_tool.py recover <project> --job-id <id> --run-id <run-id> --confirm-stopped
 python3 <本技能目录>/scripts/dag_scheduler.py <project>/episodes/<EP>/分镜.md
 ```
 
@@ -92,7 +93,15 @@ python3 <本技能目录>/scripts/dag_scheduler.py <project>/episodes/<EP>/分�
 `prepare` 只验证并预览，不生产。`confirm` 只保存与当前 job 指纹绑定的一次性确认。
 `run` 才启动 adapter。`audit` 只对账本地任务历史、失败后恢复、重复内容尝试和当前输出字节，
 不会调用供应商，也不把技术成功、文件存在或哈希一致写成媒体质量结论。同一 job 存在未决
-`running` attempt 时禁止重新 prepare、confirm 或 run；先等待完成或排查遗留 attempt。
+`running` attempt 时禁止重新 prepare、confirm 或 run；先等待完成，或确认原生产进程已停止后恢复。
+
+如果进程在发布输出时被强制中断，`audit` 会报告 `publication_recovery_pending`。先根据 job/run ID
+检查原进程确已停止，再执行 `recover`；它会校验目标、暂存文件和备份，只在文件字节符合恢复日志时
+回滚部分发布，遇到不一致就停止并要求人工检查。没有发布日志的遗留 `running_attempt` 也可用同一命令
+结清运行状态。若运行记录已是 `succeeded`，恢复命令只完成残留备份/暂存文件清理。
+
+进程被中断时，远端供应商是否已完成任务可能无法确定；恢复不会再次调用供应商，也不会自动重试。
+先检查供应商任务状态和费用，再创建新 job 并重新确认，避免重复生产和重复扣费。
 
 `rerun` 是单镜粒度授权的落点：它只重新 `prepare` 引用了指定镜头的 job，刷新该镜头的指纹并
 作废它的旧确认，其他镜头已经确认过的状态不受影响。`--shot` 接受完整 ID（`SHOT-EP001-003`），

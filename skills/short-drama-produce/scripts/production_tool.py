@@ -57,6 +57,8 @@ PROJECT_CONTENT_DIRECTORIES = frozenset(
 PRODUCTION_ROOT = Path(".short-drama/production")
 JOB_SCHEMA = "1.0"
 JOB_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
+RUN_ID_RE = re.compile(r"\d{8}T\d{6}-[0-9a-f]{8}")
+PUBLICATION_SCHEMA = "1.0"
 MAX_JOB_BYTES = 256 * 1024
 MAX_RUN_RECORD_BYTES = 256 * 1024
 MAX_ADAPTER_RESPONSE_BYTES = 1024 * 1024
@@ -1686,23 +1688,221 @@ def _stage_output(source: Path, target: Path) -> tuple[Path, str, int]:
     return temporary, digest.hexdigest(), size
 
 
+def _publication_location(job_id: str, run_id: str) -> tuple[tuple[str, ...], str]:
+    if JOB_ID_RE.fullmatch(job_id) is None or RUN_ID_RE.fullmatch(run_id) is None:
+        raise ValueError("production job or run identifier is invalid")
+    return ("publications", _job_key(job_id)), f"{run_id}.json"
+
+
+def _write_publication_journal(
+    root: Path, job_id: str, run_id: str, entries: list[dict[str, Any]]
+) -> None:
+    directory, name = _publication_location(job_id, run_id)
+    _metadata_atomic_json(
+        root,
+        directory,
+        name,
+        {
+            "schema_version": PUBLICATION_SCHEMA,
+            "job_id": job_id,
+            "run_id": run_id,
+            "entries": entries,
+        },
+    )
+
+
+def _read_publication_journal(
+    root: Path, job_id: str, run_id: str
+) -> dict[str, Any] | None:
+    directory, name = _publication_location(job_id, run_id)
+    try:
+        document = _metadata_read_json(
+            root, directory, name, maximum=MAX_RUN_RECORD_BYTES
+        )
+    except FileNotFoundError:
+        return None
+    if (
+        not isinstance(document, dict)
+        or document.get("schema_version") != PUBLICATION_SCHEMA
+        or document.get("job_id") != job_id
+        or document.get("run_id") != run_id
+        or not isinstance(document.get("entries"), list)
+        or not document["entries"]
+    ):
+        raise ValueError("production publication journal is invalid")
+    return document
+
+
+def _publication_path_digest(root: Path, relative: str) -> tuple[str, int] | None:
+    path = _project_file(root, relative)
+    try:
+        details = path.lstat()
+    except FileNotFoundError:
+        return None
+    if _is_link_or_reparse(details) or not stat.S_ISREG(details.st_mode):
+        raise ValueError("production publication path is unsafe")
+    return _hash_production_output(root, relative)
+
+
+def _validated_publication_entries(
+    root: Path, document: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    raw_entries = document.get("entries")
+    if not isinstance(raw_entries, list) or len(raw_entries) > 256:
+        raise ValueError("production publication journal entries are invalid")
+    entries: list[dict[str, Any]] = []
+    used: set[str] = set()
+    digest_pattern = re.compile(r"[0-9a-f]{64}")
+    for raw in raw_entries:
+        if not isinstance(raw, Mapping):
+            raise ValueError("production publication journal entry is invalid")
+        target = _relative_path(raw.get("path"), output=True)
+        temporary = _relative_path(raw.get("temporary"), output=True)
+        original_exists = raw.get("original_exists")
+        original_digest = raw.get("original_sha256")
+        new_digest = raw.get("new_sha256")
+        backup_value = raw.get("backup")
+        backup = (
+            _relative_path(backup_value, output=True)
+            if backup_value is not None
+            else None
+        )
+        target_path = PurePosixPath(target)
+        if (
+            not isinstance(original_exists, bool)
+            or not isinstance(new_digest, str)
+            or digest_pattern.fullmatch(new_digest) is None
+            or PurePosixPath(temporary).parent != target_path.parent
+            or re.fullmatch(rf"\.{re.escape(target_path.name)}\.[0-9a-f]{{32}}\.tmp", PurePosixPath(temporary).name) is None
+            or (original_exists and (
+                not isinstance(original_digest, str)
+                or digest_pattern.fullmatch(original_digest) is None
+                or backup is None
+            ))
+            or (not original_exists and (original_digest is not None or backup is not None))
+            or (backup is not None and (
+                PurePosixPath(backup).parent != target_path.parent
+                or re.fullmatch(rf"\.{re.escape(target_path.name)}\.[0-9a-f]{{32}}\.bak", PurePosixPath(backup).name) is None
+            ))
+        ):
+            raise ValueError("production publication journal entry is invalid")
+        paths = {target, temporary} | ({backup} if backup is not None else set())
+        if used.intersection(paths):
+            raise ValueError("production publication journal paths overlap")
+        used.update(paths)
+        entries.append(
+            {
+                "path": target,
+                "temporary": temporary,
+                "original_exists": original_exists,
+                "original_sha256": original_digest,
+                "new_sha256": new_digest,
+                "backup": backup,
+            }
+        )
+    return entries
+
+
+def _rollback_publication_journal(
+    root: Path, job_id: str, run_id: str, document: Mapping[str, Any]
+) -> None:
+    entries = _validated_publication_entries(root, document)
+    states: list[tuple[dict[str, Any], tuple[str, int] | None, tuple[str, int] | None, tuple[str, int] | None]] = []
+    for entry in entries:
+        target_state = _publication_path_digest(root, entry["path"])
+        temporary_state = _publication_path_digest(root, entry["temporary"])
+        backup = entry["backup"]
+        backup_state = _publication_path_digest(root, backup) if backup else None
+        target_digest = target_state[0] if target_state else None
+        backup_digest = backup_state[0] if backup_state else None
+        temporary_digest = temporary_state[0] if temporary_state else None
+        allowed_targets = {entry["new_sha256"]}
+        if entry["original_exists"]:
+            allowed_targets.add(entry["original_sha256"])
+            if target_state is None:
+                allowed_targets.add(None)
+            if backup_digest not in {None, entry["original_sha256"]}:
+                raise ValueError("production rollback backup changed; manual review required")
+            if target_digest in {entry["new_sha256"], None} and backup_digest != entry["original_sha256"]:
+                raise ValueError("production rollback backup is missing; manual review required")
+        else:
+            allowed_targets.add(None)
+            if backup_state is not None:
+                raise ValueError("unexpected production rollback backup; manual review required")
+        if target_digest not in allowed_targets:
+            raise ValueError("production output changed during interrupted publish; manual review required")
+        if temporary_digest not in {None, entry["new_sha256"]}:
+            raise ValueError("staged production output changed; manual review required")
+        states.append((entry, target_state, temporary_state, backup_state))
+
+    for entry, target_state, temporary_state, backup_state in reversed(states):
+        target = _project_file(root, entry["path"])
+        backup = _project_file(root, entry["backup"]) if entry["backup"] else None
+        target_digest = target_state[0] if target_state else None
+        if entry["original_exists"]:
+            if backup_state is not None:
+                if target_digest != entry["original_sha256"]:
+                    os.replace(backup, target)
+                else:
+                    backup.unlink()
+        elif target_digest == entry["new_sha256"]:
+            target.unlink()
+        if temporary_state is not None:
+            _project_file(root, entry["temporary"]).unlink()
+    directory, name = _publication_location(job_id, run_id)
+    _metadata_unlink(root, directory, name)
+
+
+def _finish_publication_journal(
+    root: Path, job_id: str, run_id: str, document: Mapping[str, Any]
+) -> None:
+    entries = _validated_publication_entries(root, document)
+    for entry in entries:
+        target_state = _publication_path_digest(root, entry["path"])
+        if target_state is None or target_state[0] != entry["new_sha256"]:
+            raise ValueError("published production output changed before commit")
+        for path, expected in (
+            (entry["temporary"], entry["new_sha256"]),
+            (entry["backup"], entry["original_sha256"]),
+        ):
+            if path is None:
+                continue
+            state = _publication_path_digest(root, path)
+            if state is not None:
+                if state[0] != expected:
+                    raise ValueError("production publication cleanup path changed")
+                _project_file(root, path).unlink()
+    directory, name = _publication_location(job_id, run_id)
+    _metadata_unlink(root, directory, name)
+
+
 def _publish_outputs(
     root: Path,
     entries: list[tuple[str, Path]],
     *,
     overwrite: bool,
+    job_id: str | None = None,
+    run_id: str | None = None,
 ) -> list[dict[str, Any]]:
+    if (job_id is None) != (run_id is None):
+        raise ValueError("publication journal requires both job_id and run_id")
     staged: list[tuple[Path, Path, str, int]] = []
     backups: dict[Path, Path | None] = {}
     published: list[Path] = []
+    journal: dict[str, Any] | None = None
+    journal_written = False
+    rollback_complete = False
     try:
         for relative, source in entries:
             target = _project_file(root, relative, create_parent=True)
             temporary, digest, size = _stage_output(source, target)
             staged.append((target, temporary, digest, size))
 
-        if overwrite:
-            for target, _, _, _ in staged:
+        if job_id is not None and run_id is not None:
+            journal_entries: list[dict[str, Any]] = []
+            for (relative, _), (target, temporary, digest, _) in zip(entries, staged):
+                original_exists = False
+                original_digest: str | None = None
                 backup: Path | None = None
                 try:
                     details = target.lstat()
@@ -1711,9 +1911,50 @@ def _publish_outputs(
                 else:
                     if _is_link_or_reparse(details) or not stat.S_ISREG(details.st_mode):
                         raise AdapterError("existing production output is unsafe")
+                    if not overwrite:
+                        raise FileExistsError(
+                            f"output appeared while production was running: {target.name}"
+                        )
+                    original_exists = True
+                    original_digest, _ = _hash_production_output(root, relative)
                     backup = target.with_name(f".{target.name}.{uuid.uuid4().hex}.bak")
-                    os.link(target, backup, follow_symlinks=False)
+                journal_entries.append(
+                    {
+                        "path": relative,
+                        "temporary": temporary.relative_to(root).as_posix(),
+                        "original_exists": original_exists,
+                        "original_sha256": original_digest,
+                        "new_sha256": digest,
+                        "backup": backup.relative_to(root).as_posix() if backup else None,
+                    }
+                )
                 backups[target] = backup
+            journal = {
+                "schema_version": PUBLICATION_SCHEMA,
+                "job_id": job_id,
+                "run_id": run_id,
+                "entries": journal_entries,
+            }
+            _write_publication_journal(root, job_id, run_id, journal_entries)
+            journal_written = True
+
+        if overwrite:
+            for target, _, _, _ in staged:
+                if journal_written:
+                    backup = backups.get(target)
+                else:
+                    backup = None
+                    try:
+                        details = target.lstat()
+                    except FileNotFoundError:
+                        pass
+                    else:
+                        if _is_link_or_reparse(details) or not stat.S_ISREG(details.st_mode):
+                            raise AdapterError("existing production output is unsafe")
+                        backup = target.with_name(f".{target.name}.{uuid.uuid4().hex}.bak")
+                    backups[target] = backup
+                if backup is not None:
+                    os.link(target, backup, follow_symlinks=False)
 
         for target, temporary, _, _ in staged:
             if overwrite:
@@ -1737,28 +1978,38 @@ def _publish_outputs(
             for (relative, _), (_, _, digest, size) in zip(entries, staged)
         ]
     except Exception:
-        rollback_error: Exception | None = None
-        for target in reversed(published):
-            backup = backups.get(target)
+        if journal_written and job_id is not None and run_id is not None and journal is not None:
             try:
-                if backup is None:
-                    target.unlink(missing_ok=True)
-                else:
-                    os.replace(backup, target)
-                    backups[target] = None
-            except OSError as exc:
-                rollback_error = rollback_error or exc
-        if rollback_error is not None:
-            raise AdapterError(
-                "production output publication failed and rollback was incomplete; inspect output paths"
-            ) from rollback_error
+                _rollback_publication_journal(root, job_id, run_id, journal)
+                rollback_complete = True
+            except Exception as exc:
+                raise AdapterError(
+                    "production output publication failed and rollback is pending; run recovery after the attempt stops"
+                ) from exc
+        else:
+            rollback_error: Exception | None = None
+            for target in reversed(published):
+                backup = backups.get(target)
+                try:
+                    if backup is None:
+                        target.unlink(missing_ok=True)
+                    else:
+                        os.replace(backup, target)
+                        backups[target] = None
+                except OSError as exc:
+                    rollback_error = rollback_error or exc
+            if rollback_error is not None:
+                raise AdapterError(
+                    "production output publication failed and rollback was incomplete; inspect output paths"
+                ) from rollback_error
         raise
     finally:
-        for _, temporary, _, _ in staged:
-            temporary.unlink(missing_ok=True)
-        for backup in backups.values():
-            if backup is not None:
-                backup.unlink(missing_ok=True)
+        if not journal_written or rollback_complete:
+            for _, temporary, _, _ in staged:
+                temporary.unlink(missing_ok=True)
+            for backup in backups.values():
+                if backup is not None:
+                    backup.unlink(missing_ok=True)
 
 
 def _latest_run(root: Path, job_id: str) -> dict[str, Any] | None:
@@ -1847,6 +2098,67 @@ def _write_run(root: Path, job_id: str, run: Mapping[str, Any]) -> None:
     )
 
 
+def _process_is_running(process_id: object) -> bool:
+    if not isinstance(process_id, int) or isinstance(process_id, bool) or process_id <= 0:
+        return False
+    try:
+        os.kill(process_id, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return True
+    return True
+
+
+def recover_interrupted_run(
+    root: Path, *, job_id: str, run_id: str, confirm_stopped: bool
+) -> dict[str, Any]:
+    root = find_project(root)
+    if JOB_ID_RE.fullmatch(job_id) is None or RUN_ID_RE.fullmatch(run_id) is None:
+        raise ValueError("production job or run identifier is invalid")
+    if not confirm_stopped:
+        raise ValueError("verify the original production process has stopped, then pass --confirm-stopped")
+    directory_parts, run_name = ("runs", _job_key(job_id)), f"{run_id}.json"
+    with _project_lock(root):
+        run = _metadata_read_json(
+            root, directory_parts, run_name, maximum=MAX_RUN_RECORD_BYTES
+        )
+        if (
+            not isinstance(run, dict)
+            or run.get("job_id") != job_id
+            or run.get("run_id") != run_id
+            or run.get("status") not in {"running", "failed", "succeeded"}
+        ):
+            raise ValueError("production run record is invalid")
+        journal = _read_publication_journal(root, job_id, run_id)
+        if run["status"] == "succeeded":
+            if journal is not None:
+                _finish_publication_journal(root, job_id, run_id, journal)
+            return {"job_id": job_id, "run_id": run_id, "state": "succeeded"}
+        if run["status"] == "running" and _process_is_running(run.get("process_id")):
+            raise ValueError("production process is still running; stop it before recovery")
+        if journal is not None:
+            _rollback_publication_journal(root, job_id, run_id, journal)
+        if run["status"] == "running":
+            run["status"] = "failed"
+            run["finished_at"] = utc_now()
+            run["error"] = {
+                "category": "interrupted",
+                "retryable": False,
+                "message": "run stopped before a terminal result; provider outcome may be unknown",
+            }
+            _write_run(root, job_id, run)
+        return {
+            "job_id": job_id,
+            "run_id": run_id,
+            "state": "failed",
+            "outputs_restored": journal is not None,
+            "provider_outcome": "unknown",
+        }
+
+
 def run_job(
     root: Path,
     *,
@@ -1914,6 +2226,7 @@ def run_job(
                 "status": "running",
                 "started_at": utc_now(),
                 "finished_at": None,
+                "process_id": os.getpid(),
                 "outputs": [],
             }
             _write_run(root, job_id, run)
@@ -1926,12 +2239,17 @@ def run_job(
                 "output_root": str(output_root),
             }
         )
+        publication_cleanup_pending = False
         try:
             response = _run_adapter(command, timeout, payload, root)
             adapter_outputs = _validate_adapter_outputs(job, response, output_root)
             with _project_lock(root):
                 written = _publish_outputs(
-                    root, adapter_outputs, overwrite=bool(job["overwrite"])
+                    root,
+                    adapter_outputs,
+                    overwrite=bool(job["overwrite"]),
+                    job_id=job_id,
+                    run_id=run_id,
                 )
                 run["status"] = "succeeded"
                 run["finished_at"] = utc_now()
@@ -1940,6 +2258,12 @@ def run_job(
                 if isinstance(provider_job_id, str) and len(provider_job_id) <= 200:
                     run["provider_job_id"] = provider_job_id
                 _write_run(root, job_id, run)
+                journal = _read_publication_journal(root, job_id, run_id)
+                if journal is not None:
+                    try:
+                        _finish_publication_journal(root, job_id, run_id, journal)
+                    except Exception:
+                        publication_cleanup_pending = True
         except Exception as exc:
             with _project_lock(root):
                 run["status"] = "failed"
@@ -1954,6 +2278,7 @@ def run_job(
         "state": "succeeded",
         "outputs": run["outputs"],
         "estimated_cost": cost_estimate,
+        "recovery_cleanup_pending": publication_cleanup_pending,
     }
 
 
@@ -2118,7 +2443,30 @@ def audit_project(root: Path) -> dict[str, Any]:
                         "code": "running_attempt",
                         "job_id": job_id,
                         "run_id": str(run["run_id"]),
-                        "action": "wait_or_investigate_running_attempt",
+                        "action": "verify_process_stopped_then_recover",
+                    }
+                )
+        for run in history:
+            run_id = str(run["run_id"])
+            try:
+                journal = _read_publication_journal(root, job_id, run_id)
+            except (OSError, ValueError, json.JSONDecodeError):
+                problems.append(
+                    {
+                        "code": "invalid_publication_journal",
+                        "job_id": job_id,
+                        "run_id": run_id,
+                        "action": "inspect_recovery_metadata",
+                    }
+                )
+                continue
+            if journal is not None:
+                problems.append(
+                    {
+                        "code": "publication_recovery_pending",
+                        "job_id": job_id,
+                        "run_id": run_id,
+                        "action": "verify_process_stopped_then_recover",
                     }
                 )
         fingerprints = [
@@ -2367,6 +2715,17 @@ def build_parser() -> argparse.ArgumentParser:
         "audit", help="Reconcile attempt history and current output bytes."
     )
     audit.add_argument("project")
+    recover = commands.add_parser(
+        "recover", help="Resolve a stopped run and roll back interrupted output publication."
+    )
+    recover.add_argument("project")
+    recover.add_argument("--job-id", required=True)
+    recover.add_argument("--run-id", required=True)
+    recover.add_argument(
+        "--confirm-stopped",
+        action="store_true",
+        help="confirm you verified the original production process has stopped",
+    )
     return parser
 
 
@@ -2389,6 +2748,13 @@ def main(argv: list[str] | None = None) -> int:
             result = job_status(Path(args.project), job_id=args.job_id)
         elif args.command == "rerun":
             result = rerun_shot(Path(args.project), shot=args.shot)
+        elif args.command == "recover":
+            result = recover_interrupted_run(
+                Path(args.project),
+                job_id=args.job_id,
+                run_id=args.run_id,
+                confirm_stopped=args.confirm_stopped,
+            )
         else:
             result = audit_project(Path(args.project))
         print(json.dumps(result, ensure_ascii=True, sort_keys=True))
