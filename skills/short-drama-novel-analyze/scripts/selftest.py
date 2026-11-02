@@ -166,6 +166,25 @@ def main() -> int:
         candidates = analysis / "episode-candidates.jsonl"
         candidates.write_text(json.dumps(candidate) + "\n", encoding="utf-8")
         require(validate_candidates(analysis) == [], "valid episode source points")
+        index["chapters"].append({"sequence": 1})
+        (analysis / "_index.json").write_text(json.dumps(index), encoding="utf-8")
+        require(
+            any("invalid chapter sequences" in problem for problem in validate_candidates(analysis)),
+            "reject duplicate indexed chapter sequences",
+        )
+        index["chapters"].pop()
+        (analysis / "_index.json").write_text(json.dumps(index), encoding="utf-8")
+        (chapters / "ch-001-extract.md").write_text(
+            "P1 状态 | 建立当前目标\nP1 状态 | 重复编号\nP2 转折 | 目标发生变化\n",
+            encoding="utf-8",
+        )
+        require(
+            any("duplicate extracted point IDs" in problem for problem in validate_candidates(analysis)),
+            "reject duplicate extracted point identifiers",
+        )
+        (chapters / "ch-001-extract.md").write_text(
+            "P1 状态 | 建立当前目标\nP2 转折 | 目标发生变化\n", encoding="utf-8"
+        )
         candidate["source_point_refs"][0]["points"] = "P1-P3"
         candidates.write_text(json.dumps(candidate) + "\n", encoding="utf-8")
         require(
@@ -185,7 +204,7 @@ def main() -> int:
             "reject non-object JSONL record",
         )
 
-    print("22 self-tests passed")
+    print("24 self-tests passed")
     return 0
 
 

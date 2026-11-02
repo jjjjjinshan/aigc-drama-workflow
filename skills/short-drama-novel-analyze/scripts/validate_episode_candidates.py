@@ -18,8 +18,14 @@ def validate_candidates(analysis_dir: Path) -> list[str]:
     errors: list[str] = []
     try:
         index = json.loads((analysis_dir / "_index.json").read_text(encoding="utf-8-sig"))
-        chapters = {chapter["sequence"] for chapter in index["chapters"]}
-        if not chapters or any(type(sequence) is not int or sequence < 1 for sequence in chapters):
+        raw_chapters = index["chapters"]
+        sequences = [chapter["sequence"] for chapter in raw_chapters]
+        chapters = set(sequences)
+        if (
+            not chapters
+            or any(type(sequence) is not int or sequence < 1 for sequence in sequences)
+            or len(chapters) != len(sequences)
+        ):
             raise ValueError("index contains invalid chapter sequences")
     except (OSError, ValueError, KeyError, TypeError) as exc:
         return [f"cannot read chapter index: {exc}"]
@@ -28,10 +34,13 @@ def validate_candidates(analysis_dir: Path) -> list[str]:
     for sequence in chapters:
         path = analysis_dir / "chapters" / f"ch-{sequence:03d}-extract.md"
         try:
-            point_ids[sequence] = {
+            points = [
                 int(match.group(1))
                 for match in EXTRACTED_POINT.finditer(path.read_text(encoding="utf-8-sig"))
-            }
+            ]
+            point_ids[sequence] = set(points)
+            if len(point_ids[sequence]) != len(points):
+                errors.append(f"chapter {sequence}: duplicate extracted point IDs")
         except (OSError, UnicodeError) as exc:
             errors.append(f"chapter {sequence}: cannot read extraction: {exc}")
 
