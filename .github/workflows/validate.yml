@@ -40,3 +40,6 @@ jobs:
             python "${test_file}"
           done < <(find skills -mindepth 4 -maxdepth 4 -type f -name selftest.py -print0 | sort -z)
           python adapters/kling_adapter.py --selftest
+      - name: Check Windows SAPI availability
+        if: runner.os == 'Windows'
+        run: pwsh -NoProfile -File adapters/windows_sapi_tts.ps1 -SelfTest

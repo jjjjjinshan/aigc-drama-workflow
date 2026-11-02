@@ -137,6 +137,8 @@ adapter 配置必须在项目外，只包含 argv 命令和超时；凭据由 ad
 - [MiniMax Music](references/providers/minimax-music.md)：使用 `music-3.0` 与 hex 结果，区分主题曲
   和纯配乐，不伪造时长请求字段。
 
+Windows 本机的无云端配音技术基线见 [Windows SAPI TTS](references/providers/windows-sapi-tts.md)。它只支持 WAV 和已安装声线，不提供情绪表演或跨平台能力。
+
 这些 adapter 是已验证请求契约，不是账号可用性或生成质量保证；正式生产仍必须通过上面的本次
 确认闸门，并由审查 Skill 判断产物质量。
 

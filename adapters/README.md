@@ -10,6 +10,9 @@
 |---|---|
 | `base_adapter.py` | 抽象基类。校验确认文档、重算 SHA-256 执行指纹、提供 HTTP / 轮询 / 下载 / 落盘基元 |
 | `kling_adapter.py` | 可灵（Kling AI）实现。文生视频、图生视频、文生图，JWT 鉴权 + 异步轮询 |
+| `windows_sapi_tts.ps1` | Windows 本机 SAPI 语音合成；仅用于无外部服务费用的 TTS 技术链路验证 |
+
+Windows SAPI 的安装、任务参数和质量限制见 [配音 Adapter 说明](../skills/short-drama-produce/references/providers/windows-sapi-tts.md)。
 
 `CHAIN_PREV` 会把上一个镜头的尾帧作为图生视频首帧，帧字节参与生产确认指纹。当前 Kling 适配器只在没有其他参考图时接受这种链式输入；两种参考语义无法同时映射到该 Provider 请求时会明确拒绝。
 
