@@ -1,5 +1,9 @@
 # 五份创作文档
 
+本文件只定义创作阶段的五份权威文档。进入后期组装时，另由 `short-drama-edit` 拥有
+`episodes/<EP>/成片编排.md`；该文件只记录剪辑、字幕时间和混音意图，具体契约见
+`skills/short-drama-edit/references/timeline-contract.md`。
+
 这是一份建议格式，不是 schema。优先让人一眼读懂；只有跨文档引用和投产定位需要稳定 ID。
 
 ## `剧本.md`

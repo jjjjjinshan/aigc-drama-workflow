@@ -105,7 +105,7 @@ python3 scripts/selftest.py
 # 期望输出：17 self-tests passed
 ```
 
-批量验证全部 11 个：
+批量验证全部 12 个：
 
 ```bash
 for d in skills/*/; do

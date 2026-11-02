@@ -1,6 +1,6 @@
 ---
 name: short-drama
-description: 基于文件系统初始化和继续短剧或漫剧项目，提供 creator-first 五文档路由、本地 Dashboard、制作形态与 Look Development 决策。用户提出“创建/继续短剧项目”“看进度/下一步”“做 Look Development”“打开 dashboard/短剧创作台”“导出制作资料”，或任务跨多个创作阶段时使用；明确的写作、资产、提示词、分镜或审查请求由对应子 skill 直接处理。
+description: 基于文件系统初始化和继续短剧或漫剧项目，提供 creator-first 创作文档路由、本地 Dashboard、成片编排路由、制作形态与 Look Development 决策。用户提出“创建/继续短剧项目”“看进度/下一步”“做 Look Development”“打开 dashboard/短剧创作台”“编排剪辑/字幕/音频/导出成片”或任务跨多个创作阶段时使用；明确的写作、资产、提示词、分镜或审查请求由对应子 skill 直接处理。
 license: MIT
 ---
 
@@ -27,11 +27,13 @@ license: MIT
 | 做镜头和冻结关键帧 | `$short-drama-storyboard` → `分镜.md` |
 | 写视频/时间线音乐提示词 | `$short-drama-video-prompts` → `视频提示词.md` |
 | 实际生成媒体 | `$short-drama-produce`，先预览，再显式确认，最后运行 |
+| 编排已生成片段、配音、字幕、音乐/音效并准备组装 | `$short-drama-edit` → `成片编排.md`，来源核验后编译 EDL/SRT |
 | 审稿或校验 | `$short-drama-review`，仅在用户点名时 |
 | 初始化、Dashboard、归档点名文档 | 本技能 |
 
 `项目开发/` 中的长材料分析与分集索引是可选分析工作区，不参与单集布局判定；写任何一集仍只维护
-该集的五份 creator-first Markdown。
+该集的五份创作阶段 creator-first Markdown。实际进入后期组装时，再由 `$short-drama-edit` 单独拥有
+`成片编排.md`；它记录剪辑和混音决定，不复制剧情、视觉设定、镜头或提示词。
 
 现成剧本可直接拆资产；已有视觉事实可直接写图片提示词或分镜；已有分镜可直接写视频提示词。
 不要为补齐名义流水线伪造上游。
