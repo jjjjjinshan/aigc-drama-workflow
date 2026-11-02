@@ -41,9 +41,9 @@
 | #4 | 将 DAG 接入逐项确认的生产执行 | DAG/生产 fixture 自检，覆盖确认、依赖、取消和失败停机 | 付费生成与真实产物 |
 | #5 | 审核时间线编译为 EDL/SRT | 时间线来源和篡改校验自检；生产/DAG/Provider/Kling 自检；语法及 diff 检查 | FFmpeg 渲染、媒体探测、成片播放与视听质量 |
 | #6 | 受限 EDL 渲染为版本化成片并生成技术/来源 manifest | FFmpeg/ffprobe `n9.0.2-42-gd7643a0fe3-20261101` 合成媒体验证：画面、音频混合、外挂/烧录字幕、尺寸/帧率/时长、完整解码、失败清理 | 用户素材、目标播放器兼容、审美验收与连续剧集试产 |
-| #7 | 将新 TTS job 绑定到单条 `VLINE-*`，锁定当前剧本投影；增加 Ubuntu/Windows 双平台 CI | 本机 Windows 全部 12 个 Skill 与 Kling 自检通过；GitHub Actions 在 head `cb09720`（run `41449289698`）的 Ubuntu 24.04 和 Windows 2025 均通过；FFmpeg 合成媒体验证通过 | 外部 TTS 服务、真实剧集配音质量；进程在多文件暂存/发布中途崩溃仍可能留下临时文件或部分输出 |
+| #7 | 将新 TTS job 绑定到单条 `VLINE-*`，锁定当前剧本投影；事务化发布输出；增加 Ubuntu/Windows 双平台 CI | 当前 head `208be14` 的 GitHub Actions run `41464132646` 在 Ubuntu 24.04 和 Windows 2025 均通过；本机 Python 3.12 的编译、12 个 Skill 自检和 Kling 自检通过；包含生产锁硬链接回归检查。此前 FFmpeg 合成媒体验证仍适用于未变更的组装代码 | 外部 TTS 服务、真实剧集配音质量；进程在多文件暂存/发布中途崩溃仍可能留下临时文件或部分输出 |
 | #8 | 接入已有项目的生命周期状态，不改现有项目 manifest | 项目管理 Skill 22 项自检在 Python 3.12 和 3.14.10 通过；私有试产项目实际 adopt/status 成功，原 manifest SHA-256 不变 | 不同项目配置版本迁移及 GitHub Actions 验证 |
-| #9 | 增加可选 Windows SAPI 本机 TTS Adapter 和机器自检 | head `3603145` 的 GitHub Actions run `41450485104` 在 Ubuntu 24.04 与 Windows 2025 通过，Windows 生成并检查临时 WAV；本机完整 `prepare → confirm → run → 时间线/SRT/FFmpeg` 集成通过 | 目标声音审听、故事对白质量、真实角色表演、真实镜头与剧集验收 |
+| #9 | 增加可选 Windows SAPI 本机 TTS Adapter 和机器自检 | 当前 head `d4983e4` 的 GitHub Actions run `41464491055` 在 Ubuntu 24.04 与 Windows 2025 均通过；Windows 生成并检查临时 WAV；本机 SAPI 自检及完整离线套件通过。此前本机 `prepare → confirm → run → 时间线/SRT/FFmpeg` 合成集成验证仍适用于未变更的音频/组装逻辑 | 目标声音审听、故事对白质量、真实角色表演、真实镜头与剧集验收 |
 | #10 | 原文索引支持显式编码并绑定源文件 SHA-256 | 12 项离线自检覆盖 GB18030、旧索引兼容和源文件变化 | 实际长文本章节边界与合法试产素材上的端到端验证 |
 | #12 | 写作/生产前检查项目声明的创作者接受前置条件 | 29 项生命周期自检；私有简报门禁探测拒绝 `needs_confirmation` | PR #8 合并前不能独立集成；接受后真实创作与生产行为仍需试产验收 |
 
