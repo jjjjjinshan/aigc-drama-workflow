@@ -41,21 +41,25 @@ def create_media_job(
     output: str,
 ) -> dict[str, Any]:
     raw_path = temp / f"{job_id}.json"
-    raw_path.write_text(
-        json.dumps(
+    job = {
+        "job_id": job_id,
+        "modality": modality,
+        "adapter": "fixture",
+        "prompt": "offline edit compiler self-test",
+        "references": [],
+        "outputs": [output],
+        "parameters": {"duration": 5} if modality == "video" else {},
+        "overwrite": False,
+    }
+    if modality == "tts":
+        job.update(
             {
-                "job_id": job_id,
-                "modality": modality,
-                "adapter": "fixture",
-                "prompt": "offline edit compiler self-test",
-                "references": [],
-                "outputs": [output],
-                "parameters": {"duration": 5} if modality == "video" else {},
-                "overwrite": False,
+                "prompt": "你好。",
+                "source": "episodes/EP001/voice-record-sheet.jsonl",
+                "source_entry": "VLINE-EP001-SC001-001",
             }
-        ),
-        encoding="utf-8",
-    )
+        )
+    raw_path.write_text(json.dumps(job, ensure_ascii=False), encoding="utf-8")
     preview = prepare_job(project, raw_path)
     confirm_job(project, job_id=job_id, confirmation=preview["confirmation"])
     return run_job(project, job_id=job_id, adapter_config=adapter_config)
@@ -83,22 +87,6 @@ def main() -> int:
             "EDIT-VIDEO-001",
             "video",
             "dist/EP001/video/shot.mp4",
-        )
-        audio_result = create_media_job(
-            project,
-            temp,
-            adapter_config,
-            "EDIT-TTS-001",
-            "tts",
-            "dist/EP001/audio/line.wav",
-        )
-        music_result = create_media_job(
-            project,
-            temp,
-            adapter_config,
-            "EDIT-MUSIC-001",
-            "music",
-            "dist/EP001/audio/music.wav",
         )
 
         screenplay = "# EP001 测试\n\n## EP001-SC001 内 · 站台 · 深夜\n\n沈青：你好。\n"
@@ -148,6 +136,23 @@ def main() -> int:
         (episode / "voice-record-sheet.jsonl").write_text(
             "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in sheet),
             encoding="utf-8",
+        )
+
+        audio_result = create_media_job(
+            project,
+            temp,
+            adapter_config,
+            "EDIT-TTS-001",
+            "tts",
+            "dist/EP001/audio/line.wav",
+        )
+        music_result = create_media_job(
+            project,
+            temp,
+            adapter_config,
+            "EDIT-MUSIC-001",
+            "music",
+            "dist/EP001/audio/music.wav",
         )
 
         video_output = video_result["outputs"][0]
