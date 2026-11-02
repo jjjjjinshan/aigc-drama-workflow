@@ -254,6 +254,7 @@ def _relative_path(value: object, *, output: bool = False) -> str:
 
 
 def _project_file(root: Path, relative: str, *, create_parent: bool = False) -> Path:
+    root = root.resolve()
     target = root / relative
     current = root
     for part in PurePosixPath(relative).parts[:-1]:

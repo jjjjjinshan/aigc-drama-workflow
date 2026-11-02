@@ -22,6 +22,7 @@ from production_tool import (
     _job_path,
     _normalize_job,
     _publish_outputs,
+    _project_file,
     _validate_stored_job,
     sha256_bytes,
 )
@@ -48,6 +49,12 @@ def main() -> int:
         project = base / "project"
         project.mkdir()
         (project / "short-drama.json").write_text("{}\n", encoding="utf-8")
+        (project / "root-alias").mkdir()
+        aliased_root = project / "root-alias" / ".."
+        alias_target = _project_file(
+            aliased_root, "dist/EP001/path-probe.bin", create_parent=True
+        )
+        require(alias_target.parent.is_dir(), "project path alias was not canonicalized")
         production_metadata = project / ".short-drama" / "production"
         production_metadata.mkdir(parents=True)
         external_lock = base / "external-lock-target"
