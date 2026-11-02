@@ -89,10 +89,22 @@ ALLOWED_JOB_KEYS = {
     "outputs",
     "parameters",
     "overwrite",
+    "start_frame_source",
+    "parent_shot_id",
+    "head_frame",
 }
 STORED_EXECUTION_KEYS = ALLOWED_JOB_KEYS | {"inputs"}
 STORED_JOB_KEYS = STORED_EXECUTION_KEYS | {"fingerprint", "prepared_at"}
-LEGACY_STORED_EXECUTION_KEYS = STORED_EXECUTION_KEYS - {
+PRE_CHAIN_STORED_EXECUTION_KEYS = STORED_EXECUTION_KEYS - {
+    "start_frame_source",
+    "parent_shot_id",
+    "head_frame",
+}
+PRE_CHAIN_STORED_JOB_KEYS = PRE_CHAIN_STORED_EXECUTION_KEYS | {
+    "fingerprint",
+    "prepared_at",
+}
+LEGACY_STORED_EXECUTION_KEYS = PRE_CHAIN_STORED_EXECUTION_KEYS - {
     "source_entry",
     "reference_bindings",
 }
@@ -117,6 +129,8 @@ MEDIA_EXTENSIONS = {
     "tts": {".wav", ".mp3", ".m4a", ".aac", ".flac", ".opus"},
     "music": {".wav", ".mp3", ".m4a", ".aac", ".flac", ".opus"},
 }
+FRAME_SOURCE_RE = re.compile(r"^SHOT-[A-Z0-9][A-Z0-9-]{0,97}$")
+FRAME_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 MEDIA_TYPES = {
     ".png": "image/png",
     ".jpg": "image/jpeg",
@@ -926,6 +940,48 @@ def _verify_markdown_source(
         raise ValueError("job reference bindings do not match the selected source entry")
 
 
+def _frame_input(root: Path, modality: object, raw: Mapping[str, Any]) -> dict[str, Any]:
+    source = raw.get("start_frame_source", "ASSET")
+    parent = raw.get("parent_shot_id")
+    frame_raw = raw.get("head_frame")
+    if not isinstance(source, str) or source not in {"ASSET", "CHAIN_PREV"}:
+        raise ValueError("start_frame_source must be ASSET or CHAIN_PREV")
+    if source == "ASSET":
+        if parent is not None or frame_raw is not None:
+            raise ValueError("ASSET jobs cannot include a parent shot or head frame")
+        return {
+            "start_frame_source": source,
+            "parent_shot_id": None,
+            "head_frame": None,
+        }
+    if modality != "video":
+        raise ValueError("CHAIN_PREV is only valid for video jobs")
+    if not isinstance(parent, str) or FRAME_SOURCE_RE.fullmatch(parent) is None:
+        raise ValueError("CHAIN_PREV requires a valid parent_shot_id")
+    frame = _relative_path(frame_raw)
+    suffix = PurePosixPath(frame).suffix.casefold()
+    if suffix not in FRAME_EXTENSIONS:
+        raise ValueError("head_frame must be a PNG, JPEG, or WebP image")
+    with _open_project_input(root, frame) as handle:
+        header = handle.read(12)
+    valid_header = (
+        suffix == ".png" and header.startswith(b"\x89PNG\r\n\x1a\n")
+    ) or (
+        suffix in {".jpg", ".jpeg"} and header.startswith(b"\xff\xd8\xff")
+    ) or (
+        suffix == ".webp"
+        and header.startswith(b"RIFF")
+        and header[8:12] == b"WEBP"
+    )
+    if not valid_header:
+        raise ValueError("head_frame content does not match its image extension")
+    return {
+        "start_frame_source": source,
+        "parent_shot_id": parent,
+        "head_frame": frame,
+    }
+
+
 def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     if not isinstance(raw, Mapping) or set(raw) - ALLOWED_JOB_KEYS:
         raise ValueError("job contains unsupported fields")
@@ -937,6 +993,7 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     modality = raw.get("modality")
     if modality not in MEDIA_EXTENSIONS:
         raise ValueError("modality must be image, video, tts, or music")
+    frame_input = _frame_input(root, modality, raw)
     adapter = raw.get("adapter")
     if not isinstance(adapter, str) or JOB_ID_RE.fullmatch(adapter) is None:
         raise ValueError("adapter must be a portable profile name")
@@ -1012,6 +1069,8 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
     if len(_canonical(parameters)) > 64 * 1024:
         raise ValueError("job parameters are too large")
     input_paths = ([source] if source is not None else []) + references
+    if frame_input["head_frame"] is not None:
+        input_paths.append(frame_input["head_frame"])
     if len(set(input_paths)) != len(input_paths):
         raise ValueError("source and references must be unique")
     input_hashes = {path: _hash_project_file(root, path) for path in input_paths}
@@ -1028,6 +1087,7 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
         "outputs": outputs,
         "parameters": dict(parameters),
         "overwrite": raw.get("overwrite", False),
+        **frame_input,
         "inputs": input_hashes,
     }
     if not isinstance(execution["overwrite"], bool):
@@ -1063,13 +1123,18 @@ def _validate_stored_job(
         raise ValueError("stored job fields are invalid")
     stored_keys = set(document)
     legacy = stored_keys == LEGACY_STORED_JOB_KEYS
-    if not legacy and stored_keys != STORED_JOB_KEYS:
+    pre_chain = stored_keys == PRE_CHAIN_STORED_JOB_KEYS
+    if not legacy and not pre_chain and stored_keys != STORED_JOB_KEYS:
         raise ValueError("stored job fields are invalid")
     original = document
     document = dict(document)
     if legacy:
         document["source_entry"] = None
         document["reference_bindings"] = []
+    if legacy or pre_chain:
+        document.update(
+            {"start_frame_source": "ASSET", "parent_shot_id": None, "head_frame": None}
+        )
     job_id = document.get("job_id")
     if (
         not isinstance(job_id, str)
@@ -1082,6 +1147,9 @@ def _validate_stored_job(
     modality = document.get("modality")
     if modality not in MEDIA_EXTENSIONS:
         raise ValueError("stored job modality is invalid")
+    frame_input = _frame_input(root, modality, document)
+    if any(document.get(key) != value for key, value in frame_input.items()):
+        raise ValueError("stored job frame input is invalid")
     adapter = document.get("adapter")
     if not isinstance(adapter, str) or JOB_ID_RE.fullmatch(adapter) is None:
         raise ValueError("stored job adapter is invalid")
@@ -1151,6 +1219,8 @@ def _validate_stored_job(
     if not isinstance(document.get("overwrite"), bool):
         raise ValueError("stored job overwrite flag is invalid")
     input_paths = ([source] if source is not None else []) + references
+    if frame_input["head_frame"] is not None:
+        input_paths.append(frame_input["head_frame"])
     if len(input_paths) != len(set(input_paths)):
         raise ValueError("stored job inputs are duplicated")
     inputs = document.get("inputs")
@@ -1163,7 +1233,11 @@ def _validate_stored_job(
         raise ValueError("stored job input hash is invalid")
     fingerprint = document.get("fingerprint")
     execution_keys = (
-        LEGACY_STORED_EXECUTION_KEYS if legacy else STORED_EXECUTION_KEYS
+        LEGACY_STORED_EXECUTION_KEYS
+        if legacy
+        else PRE_CHAIN_STORED_EXECUTION_KEYS
+        if pre_chain
+        else STORED_EXECUTION_KEYS
     )
     execution = {key: original[key] for key in execution_keys}
     if (
@@ -1203,6 +1277,9 @@ def _preview(job: Mapping[str, Any]) -> dict[str, Any]:
         "outputs": job["outputs"],
         "parameters": job["parameters"],
         "overwrite": job["overwrite"],
+        "start_frame_source": job["start_frame_source"],
+        "parent_shot_id": job["parent_shot_id"],
+        "head_frame": job["head_frame"],
         "confirmation": confirmation,
         "state": "needs_confirmation",
     }
@@ -1612,6 +1689,9 @@ def run_job(root: Path, *, job_id: str, adapter_config: Path) -> dict[str, Any]:
                 "fingerprint": job["fingerprint"],
                 "modality": job["modality"],
                 "adapter": job["adapter"],
+                "start_frame_source": job["start_frame_source"],
+                "parent_shot_id": job["parent_shot_id"],
+                "head_frame": job["head_frame"],
                 "status": "running",
                 "started_at": utc_now(),
                 "finished_at": None,

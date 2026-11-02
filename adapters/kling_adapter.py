@@ -287,7 +287,15 @@ class KlingAdapter(BaseAdapter):
                     code="invalid_cfg_scale",
                 )
             body["cfg_scale"] = float(cfg_scale)
-        if self.job.references:
+        if self.job.head_frame is not None:
+            if self.job.references:
+                raise AdapterFailure(
+                    "Kling CHAIN_PREV does not support additional reference images",
+                    category="contract",
+                    code="unsupported_chain_references",
+                )
+            body["image"] = self.job.head_frame_base64()
+        elif self.job.references:
             if len(self.job.references) > 2:
                 raise AdapterFailure(
                     "可灵图生视频最多接受首帧与尾帧两张参考图",
@@ -330,7 +338,7 @@ class KlingAdapter(BaseAdapter):
     def endpoints(self) -> tuple[str, str]:
         if self.job.modality == "image":
             resource = "images/generations"
-        elif self.job.references:
+        elif self.job.references or self.job.head_frame is not None:
             resource = "videos/image2video"
         else:
             resource = "videos/text2video"
@@ -464,6 +472,41 @@ class KlingAdapter(BaseAdapter):
                 no_reference["reference_bindings"] = []
                 if KlingAdapter(ProductionJob(no_reference)).endpoints()[0] != "videos/text2video":
                     raise AssertionError("无参考图时应走 text2video")
+
+                chain_frame = project / "dist" / "EP001" / "video" / "parent-tail.png"
+                chain_frame.parent.mkdir(parents=True)
+                chain_frame.write_bytes(
+                    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDRchain-frame-v1"
+                )
+                chain_payload = {
+                    **no_reference,
+                    "start_frame_source": "CHAIN_PREV",
+                    "parent_shot_id": "SHOT-EP001-001",
+                    "head_frame": "dist/EP001/video/parent-tail.png",
+                }
+                chain_job = ProductionJob(chain_payload)
+                chain_adapter = KlingAdapter(chain_job)
+                if chain_adapter.endpoints()[0] != "videos/image2video":
+                    raise AssertionError("CHAIN_PREV should use image2video")
+                chain_body = chain_adapter.compile_body(external_task_id="chain-selftest")
+                if chain_body["image"] != chain_job.head_frame_base64():
+                    raise AssertionError("parent tail frame was not used as the start image")
+                chain_fingerprint = chain_job.verify_fingerprint()
+                chain_frame.write_bytes(b"chain-frame-v2")
+                if chain_job.verify_fingerprint() == chain_fingerprint:
+                    raise AssertionError("head frame bytes were not included in the fingerprint")
+
+                unsupported_chain = {**chain_payload, "references": ["输入/hero.png"]}
+                unsupported_chain["reference_bindings"] = video_payload["reference_bindings"]
+                try:
+                    KlingAdapter(ProductionJob(unsupported_chain)).compile_body(
+                        external_task_id="chain-selftest"
+                    )
+                except AdapterFailure as exc:
+                    if exc.code != "unsupported_chain_references":
+                        raise AssertionError("unsupported chain/reference mix failed incorrectly") from exc
+                else:
+                    raise AssertionError("Kling accepted ambiguous CHAIN_PREV references")
 
                 image_payload = dict(no_reference)
                 image_payload["modality"] = "image"

@@ -11,6 +11,8 @@
 | `base_adapter.py` | 抽象基类。校验确认文档、重算 SHA-256 执行指纹、提供 HTTP / 轮询 / 下载 / 落盘基元 |
 | `kling_adapter.py` | 可灵（Kling AI）实现。文生视频、图生视频、文生图，JWT 鉴权 + 异步轮询 |
 
+`CHAIN_PREV` 会把上一个镜头的尾帧作为图生视频首帧，帧字节参与生产确认指纹。当前 Kling 适配器只在没有其他参考图时接受这种链式输入；两种参考语义无法同时映射到该 Provider 请求时会明确拒绝。
+
 ## 接线
 
 在项目**之外**放一份 adapter 配置，内容照抄 [`config.example.json`](../config.example.json)：

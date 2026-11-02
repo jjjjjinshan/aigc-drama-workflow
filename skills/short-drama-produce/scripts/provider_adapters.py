@@ -229,6 +229,8 @@ def compile_seedance_payload(
     runtime configuration rather than assuming any Seedance release.
     """
     prompt, parameters = _require_job(job, "video")
+    if job.get("start_frame_source", "ASSET") == "CHAIN_PREV":
+        raise ValueError("Seedance adapter does not support CHAIN_PREV inputs")
     if not isinstance(model, str) or not model.strip():
         raise ValueError("Seedance model must be explicitly configured")
     references = job.get("references", [])
@@ -961,6 +963,20 @@ def _selftest() -> None:
         pass
     else:
         raise AssertionError("non-image Seedance reference was accepted")
+    try:
+        compile_seedance_payload(
+            {
+                **video,
+                "start_frame_source": "CHAIN_PREV",
+                "parent_shot_id": "SHOT-EP001-001",
+                "head_frame": "dist/EP001/frame.png",
+            },
+            model="configured-model",
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Seedance accepted an unsupported CHAIN_PREV input")
 
 
 def main() -> int:

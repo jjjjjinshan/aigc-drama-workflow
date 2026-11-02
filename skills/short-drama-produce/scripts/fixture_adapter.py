@@ -37,6 +37,16 @@ def main() -> int:
     directory = Path(directory_raw)
     if not directory.is_absolute() or not directory.is_dir() or directory.is_symlink():
         return 8
+    if job.get("start_frame_source", "ASSET") == "CHAIN_PREV":
+        head_frame = job.get("head_frame")
+        project_root = job.get("project_root")
+        if (
+            not isinstance(job.get("parent_shot_id"), str)
+            or not isinstance(head_frame, str)
+            or not isinstance(project_root, str)
+            or not (Path(project_root) / head_frame).is_file()
+        ):
+            return 9
     outputs = []
     for index, target in enumerate(job["outputs"]):
         suffix = Path(target).suffix.lower()

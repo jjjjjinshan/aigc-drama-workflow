@@ -30,7 +30,8 @@ but it is never treated as proof that a particular model supports the whole
 set. Values are compiled into the documented prompt switches `--dur` and
 `--ratio`, not sent as unverified top-level fields.
 The bundled runtime adapter currently supports text-to-video only. Local references fail closed because the public video
-contract does not prove that a local data URL is accepted. A deployment that needs image-to-video must add an external,
+contract does not prove that a local data URL is accepted. `CHAIN_PREV` is also
+rejected by this bundled adapter. A deployment that needs image-to-video must add an external,
 authorized upload step and call `compile_seedance_payload` with the resulting HTTPS or `asset://` URI; do not put a
 temporary provider URL into the creator project.
 

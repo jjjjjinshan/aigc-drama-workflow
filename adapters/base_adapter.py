@@ -68,6 +68,9 @@ EXECUTION_KEYS = (
     "outputs",
     "parameters",
     "overwrite",
+    "start_frame_source",
+    "parent_shot_id",
+    "head_frame",
 )
 
 MEDIA_EXTENSIONS = {
@@ -334,6 +337,40 @@ class ProductionJob:
                 code="invalid_reference_path",
             )
         self.reference_bindings = self._bindings()
+        self.start_frame_source = self.raw.get("start_frame_source", "ASSET")
+        self.parent_shot_id = self.raw.get("parent_shot_id")
+        self.head_frame = self.raw.get("head_frame")
+        if self.start_frame_source == "ASSET":
+            if self.parent_shot_id is not None or self.head_frame is not None:
+                raise AdapterFailure(
+                    "ASSET job cannot include a parent shot or head frame",
+                    category="contract",
+                    code="invalid_frame_input",
+                )
+        elif self.start_frame_source == "CHAIN_PREV":
+            if (
+                self.modality != "video"
+                or not isinstance(self.parent_shot_id, str)
+                or re.fullmatch(
+                    r"SHOT-[A-Z0-9][A-Z0-9-]{0,97}", self.parent_shot_id
+                )
+                is None
+                or not isinstance(self.head_frame, str)
+                or not _portable_relative(self.head_frame)
+                or PurePosixPath(self.head_frame).suffix.casefold()
+                not in {".png", ".jpg", ".jpeg", ".webp"}
+            ):
+                raise AdapterFailure(
+                    "CHAIN_PREV requires a video job, parent shot, and image head frame",
+                    category="contract",
+                    code="invalid_frame_input",
+                )
+        else:
+            raise AdapterFailure(
+                "start_frame_source must be ASSET or CHAIN_PREV",
+                category="contract",
+                code="invalid_frame_input",
+            )
         self.project_root = self._runtime_directory("project_root")
         self.output_root = self._runtime_directory("output_root")
 
@@ -523,6 +560,35 @@ class ProductionJob:
 
     def read_reference(self, index: int) -> bytes:
         path = self.reference_paths()[index]
+        return self._read_reference_path(path)
+
+    def read_head_frame(self) -> bytes:
+        if self.head_frame is None:
+            raise AdapterFailure(
+                "CHAIN_PREV job has no head frame",
+                category="contract",
+                code="invalid_frame_input",
+            )
+        root = self.project_root.resolve()
+        path = (root / self.head_frame).resolve()
+        try:
+            path.relative_to(root)
+        except ValueError as exc:
+            raise AdapterFailure(
+                "head frame escapes project_root",
+                category="contract",
+                code="input_escapes_root",
+            ) from exc
+        if not _is_regular_file(path):
+            raise AdapterFailure(
+                "head frame is not a regular file",
+                category="contract",
+                code="input_not_regular_file",
+            )
+        return self._read_reference_path(path)
+
+    @staticmethod
+    def _read_reference_path(path: Path) -> bytes:
         before = path.lstat()
         if before.st_size > MAX_REFERENCE_BYTES:
             raise AdapterFailure(
@@ -558,6 +624,9 @@ class ProductionJob:
         """参考图的原始 Base64（不带 data: 前缀），供接受内联图片的平台使用。"""
         return base64.b64encode(self.read_reference(index)).decode("ascii")
 
+    def head_frame_base64(self) -> str:
+        return base64.b64encode(self.read_head_frame()).decode("ascii")
+
     def reference_contract(self) -> str:
         """把中文名称、role、可控制 / 不得控制范围渲染成确定性文本。
 
@@ -590,6 +659,8 @@ class ProductionJob:
         """按 ``prepare`` 的规则哈希 source 与 references。"""
         root = self.project_root.resolve()
         inputs = ([self.source] if self.source else []) + self.references
+        if self.head_frame is not None:
+            inputs.append(self.head_frame)
         hashes: dict[str, str] = {}
         for relative in inputs:
             path = (root / relative).resolve()
